@@ -92,24 +92,39 @@ if ($role == 'guru' && isset($koneksi)) {
                 dashboard
             </a>
 
-            <a href="kelola_user.php"
-               class="nav-link <?= $current_page == 'kelola_user.php' ? 'active' : 'text-white'; ?>">
-                Kelola User
+            <a href="kelola_siswa.php"
+               class="nav-link <?= $current_page == 'kelola_siswa.php' ? 'active' : 'text-white'; ?>">
+                Data Siswa
             </a>
 
             <a href="kelola_guru.php"
                class="nav-link <?= $current_page == 'kelola_guru.php' ? 'active' : 'text-white'; ?>">
-                Kelola Guru
-            </a>
-
-            <a href="kelola_siswa.php"
-               class="nav-link <?= $current_page == 'kelola_siswa.php' ? 'active' : 'text-white'; ?>">
-                Kelola Siswa
+                Data Guru
             </a>
 
             <a href="kelola_kelas.php"
                class="nav-link <?= $current_page == 'kelola_kelas.php' ? 'active' : 'text-white'; ?>">
-                Kelola Kelas
+                Data Kelas
+            </a>
+
+            <a href="kelola_tahun_ajaran.php"
+               class="nav-link <?= $current_page == 'kelola_tahun_ajaran.php' ? 'active' : 'text-white'; ?>">
+                Data Tahun Ajaran
+            </a>
+
+            <a href="kelola_wali_kelas.php"
+               class="nav-link <?= $current_page == 'kelola_wali_kelas.php' ? 'active' : 'text-white'; ?>">
+                Data Walikelas
+            </a>
+
+            <a href="penempatan_siswa.php"
+               class="nav-link <?= $current_page == 'penempatan_siswa.php' ? 'active' : 'text-white'; ?>">
+                Penempatan Siswa
+            </a>
+
+            <a href="kelola_pelanggaran_kategori.php"
+               class="nav-link <?= $current_page == 'kelola_pelanggaran_kategori.php' ? 'active' : 'text-white'; ?>">
+                Kategori Pelanggaran
             </a>
 
             <a href="laporan.php"
@@ -128,8 +143,8 @@ if ($role == 'guru' && isset($koneksi)) {
                 Dashboard
             </a>
 
-            <a href="catatan_pelanggaran.php"
-               class="nav-link <?= $current_page == 'catatan_pelanggaran.php' ? 'active' : 'text-white'; ?>">
+            <a href="kelola_catatan_pelanggaran.php"
+               class="nav-link <?= $current_page == 'kelola_catatan_pelanggaran.php' ? 'active' : 'text-white'; ?>">
                 Catat Pelanggaran
             </a>
 
@@ -150,7 +165,7 @@ if ($role == 'guru' && isset($koneksi)) {
 
                 <a href="laporan.php"
                    class="nav-link <?= $current_page == 'laporan.php' ? 'active' : 'text-white'; ?>">
-                    Laporan Wali Kelas
+                    Laporan 
                 </a>
 
             <?php } ?>

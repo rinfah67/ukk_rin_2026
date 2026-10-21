@@ -20,7 +20,11 @@ if (!isset($_POST['edit'])) {
 
 $id = $_POST['id'];
 $nis = $_POST['nis'];
-$nisn = $_POST['nisn'];
+$nisn = trim($_POST['nisn'] ?? '');
+
+if (!preg_match('/^[0-9]{10}$/', $nisn)) {
+    die("NISN harus terdiri dari tepat 10 digit angka.");
+}
 $nama = $_POST['nama'];
 $jenis_kelamin = $_POST['jenis_kelamin'];
 $tanggal_lahir = $_POST['tanggal_lahir'];

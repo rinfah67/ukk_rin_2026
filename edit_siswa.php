@@ -74,15 +74,20 @@ if (!$siswa) {
         >
     </p>
 
-    <p>
-        NISN<br>
-        <input
-            type="text"
-            name="nisn"
-            value="<?php echo $siswa['nisn']; ?>"
-            required
-        >
-    </p>
+    <<div class="mb-3">
+    <label for="nisn" class="form-label">NISN</label>
+    <input
+        type="text"
+        class="form-control"
+        id="nisn"
+        name="nisn"
+        maxlength="10"
+        pattern="[0-9]{10}"
+        inputmode="numeric"
+        title="NISN harus terdiri dari 10 digit angka"
+        required
+    >
+</div>
 
     <p>
         Nama<br>

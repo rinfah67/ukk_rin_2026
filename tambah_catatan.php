@@ -193,7 +193,7 @@ if (!$pelanggaran) {
                         </button>
 
                         <a
-                            href="catatan_pelanggaran.php"
+                            href="kelola_catatan_pelanggaran.php"
                             class="btn btn-secondary"
                         >
                             Batal

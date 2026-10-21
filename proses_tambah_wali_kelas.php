@@ -47,7 +47,7 @@ mysqli_stmt_bind_param(
 );
 
 if (mysqli_stmt_execute($stmt)) {
-    header("Location: kelola_walikelas.php");
+    header("Location: kelola_wali_kelas.php");
     exit;
 }
 

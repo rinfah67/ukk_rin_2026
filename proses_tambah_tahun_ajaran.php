@@ -1,42 +1,106 @@
 
 <?php
-
 session_start();
 include 'config/koneksi.php';
 
-if (!isset($_SESSION['login'])) {
+// Cek login
+if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
     header("Location: login.php");
     exit;
 }
 
-if ($_SESSION['role'] != 'admin') {
-    die("Akses ditolak!");
+// Hanya admin
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header("Location: dashboard.php");
+    exit;
 }
 
-if (!isset($_POST['simpan'])) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: tambah_tahun_ajaran.php");
     exit;
 }
 
-$nama = mysqli_real_escape_string($koneksi, $_POST['nama']);
-$tanggal_mulai = $_POST['tanggal_mulai'];
-$tanggal_selesai = $_POST['tanggal_selesai'];
-$status_aktif = (int) $_POST['status_aktif'];
+// Ambil data form
+$nama = trim($_POST['nama'] ?? '');
+$tanggal_mulai = trim($_POST['tanggal_mulai'] ?? '');
+$tanggal_selesai = trim($_POST['tanggal_selesai'] ?? '');
+$status_aktif = isset($_POST['status_aktif'])
+    ? (int) $_POST['status_aktif']
+    : 1;
+
+// Validasi nama
+if ($nama === '' || $tanggal_mulai === '' || $tanggal_selesai === '') {
+    $_SESSION['pesan_error'] = "Semua data tahun ajaran wajib diisi.";
+    header("Location: tambah_tahun_ajaran.php");
+    exit;
+}
+
+// Validasi tanggal
+$mulai = DateTime::createFromFormat('!Y-m-d', $tanggal_mulai);
+$selesai = DateTime::createFromFormat('!Y-m-d', $tanggal_selesai);
+
+if (
+    !$mulai || $mulai->format('Y-m-d') !== $tanggal_mulai ||
+    !$selesai || $selesai->format('Y-m-d') !== $tanggal_selesai
+) {
+    $_SESSION['pesan_error'] = "Format tanggal tidak valid.";
+    header("Location: tambah_tahun_ajaran.php");
+    exit;
+}
 
 if ($tanggal_selesai < $tanggal_mulai) {
-    die("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+    $_SESSION['pesan_error'] = "Tanggal selesai tidak boleh sebelum tanggal mulai.";
+    header("Location: tambah_tahun_ajaran.php");
+    exit;
 }
 
-$sql = "INSERT INTO t_tahun_ajaran
-        (nama, tanggal_mulai, tanggal_selesai, status_aktif)
-        VALUES
-        ('$nama', '$tanggal_mulai', '$tanggal_selesai', '$status_aktif')";
+if (!in_array($status_aktif, [0, 1], true)) {
+    $_SESSION['pesan_error'] = "Status tahun ajaran tidak valid.";
+    header("Location: tambah_tahun_ajaran.php");
+    exit;
+}
 
-if (mysqli_query($koneksi, $sql)) {
+// Cek nama tahun ajaran
+$stmt = mysqli_prepare(
+    $koneksi,
+    "SELECT id FROM t_tahun_ajaran WHERE nama = ? LIMIT 1"
+);
+mysqli_stmt_bind_param($stmt, "s", $nama);
+mysqli_stmt_execute($stmt);
+$hasil = mysqli_stmt_get_result($stmt);
+
+if (mysqli_num_rows($hasil) > 0) {
+    mysqli_stmt_close($stmt);
+    $_SESSION['pesan_error'] = "Tahun ajaran tersebut sudah terdaftar.";
+    header("Location: tambah_tahun_ajaran.php");
+    exit;
+}
+mysqli_stmt_close($stmt);
+
+// Simpan data
+$stmt = mysqli_prepare(
+    $koneksi,
+    "INSERT INTO t_tahun_ajaran
+        (nama, tanggal_mulai, tanggal_selesai, status_aktif)
+     VALUES (?, ?, ?, ?)"
+);
+mysqli_stmt_bind_param(
+    $stmt,
+    "sssi",
+    $nama,
+    $tanggal_mulai,
+    $tanggal_selesai,
+    $status_aktif
+);
+
+if (mysqli_stmt_execute($stmt)) {
+    $_SESSION['pesan_sukses'] = "Tahun ajaran berhasil ditambahkan.";
+    mysqli_stmt_close($stmt);
     header("Location: kelola_tahun_ajaran.php");
     exit;
-} else {
-    echo "Gagal menambahkan tahun ajaran: " . mysqli_error($koneksi);
 }
 
-?>
+mysqli_stmt_close($stmt);
+$_SESSION['pesan_error'] = "Tahun ajaran gagal ditambahkan.";
+header("Location: tambah_tahun_ajaran.php");
+exit;

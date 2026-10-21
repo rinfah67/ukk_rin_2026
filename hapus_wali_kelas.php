@@ -27,7 +27,7 @@ $stmt = mysqli_prepare(
 mysqli_stmt_bind_param($stmt, "i", $id);
 
 if (mysqli_stmt_execute($stmt)) {
-    header("Location: kelola_walikelas.php");
+    header("Location: kelola_wali_kelas.php");
     exit;
 }
 
