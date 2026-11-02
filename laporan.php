@@ -190,9 +190,13 @@ $error_query = $query ? '' : mysqli_error($koneksi);
 
 <body>
 
-<?php include 'layout/sidebar.php'; ?>
+<div class="container-fluid">
+    <div class="row">
 
-<main class="col-12 col-lg-10 offset-lg-2 p-3 p-md-4">
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
+
 
     <!-- Judul halaman -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">

@@ -1,204 +1,128 @@
+
 <?php
-
 session_start();
-
 include 'config/koneksi.php';
 
-// CEK LOGIN
-if (!isset($_SESSION['login'])) {
+// Cek login
+if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
     header("Location: login.php");
     exit;
 }
-
-// CEK ROLE
-if ($_SESSION['role'] != 'admin') {
-    echo "Akses ditolak!";
-    exit;
-}
-
-// SIMPAN DATA GURU
-if (isset($_POST['simpan'])) {
-
-    $nip = $_POST['nip'];
-    $nama = $_POST['nama'];
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-
-    // HASH PASSWORD
-    $password_hash = password_hash(
-        $password,
-        PASSWORD_DEFAULT
-    );
-
-    // SIMPAN AKUN KE t_users
-    $sql_user = "INSERT INTO t_users
-                (
-                    name,
-                    email,
-                    password,
-                    role
-                )
-                VALUES
-                (
-                    '$nama',
-                    '$email',
-                    '$password_hash',
-                    'guru'
-                )";
-
-    if (mysqli_query($koneksi, $sql_user)) {
-
-        // AMBIL ID USER
-        $user_id = mysqli_insert_id($koneksi);
-
-        // SIMPAN DATA KE t_guru
-        $sql_guru = "INSERT INTO t_guru
-                    (
-                        nip,
-                        nama,
-                        email,
-                        status_aktif,
-                        user_id
-                    )
-                    VALUES
-                    (
-                        '$nip',
-                        '$nama',
-                        '$email',
-                        1,
-                        '$user_id'
-                    )";
-
-        if (mysqli_query($koneksi, $sql_guru)) {
-
-            header("Location: kelola_guru.php");
-            exit;
-
-        } else {
-
-            echo "Gagal menyimpan data guru: "
-                 . mysqli_error($koneksi);
-
-        }
-
-    } else {
-
-        echo "Gagal membuat akun guru: "
-             . mysqli_error($koneksi);
-
-    }
-}
-
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Tambah Guru</title>
+    <title>Tambah Guru - SI PELANG</title>
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="bg-light">
 
-<h1>Tambah Guru</h1>
+<div class="container-fluid p-4">
 
-<a href="kelola_guru.php">
-    Kembali ke Kelola Guru
-</a>
+    <div class="card border-0 shadow-sm rounded-4">
 
-<hr>
+        <!-- Header -->
+        <div class="card-header bg-primary text-white py-3 rounded-top-4">
+            <h5 class="mb-0">
+                <i class="bi bi-person-plus me-2"></i>
+                Form Tambah Guru
+            </h5>
+        </div>
 
-<form method="POST">
+        <div class="card-body p-4">
 
-    <table>
+            <form action="proses_tambah_guru.php" method="POST">
 
-        <tr>
-            <td>NIP</td>
-            <td>:</td>
-            <td>
-                <input
-                    type="text"
-                    name="nip"
-                    required
-                >
-            </td>
-        </tr>
+                <div class="row g-3">
 
-        <tr>
-            <td>Nama Guru</td>
-            <td>:</td>
-            <td>
-                <input
-                    type="text"
-                    name="nama"
-                    required
-                >
-            </td>
-        </tr>
+                    <!-- NIP -->
+                    <div class="col-md-6">
+                        <label class="form-label">NIP</label>
+                        <input type="text" name="nip"
+                               class="form-control"
+                               placeholder="Masukkan NIP"
+                               required>
+                    </div>
 
-        <tr>
-            <td>Email</td>
-            <td>:</td>
-            <td>
-                <input
-                    type="email"
-                    name="email"
-                    required
-                >
-            </td>
-        </tr>
+                    <!-- Nama Guru -->
+                    <div class="col-md-6">
+                        <label class="form-label">Nama Guru</label>
+                        <input type="text" name="nama"
+                               class="form-control"
+                               placeholder="Masukkan Nama Guru"
+                               required>
+                    </div>
 
-        <tr>
-            <td>Password</td>
-            <td>:</td>
-            <td>
-                <input
-                    type="password"
-                    name="password"
-                    required
-                >
-            </td>
-        </tr>
+                    <!-- Email -->
+                    <div class="col-md-6">
+                        <label class="form-label">Email Login</label>
+                        <input type="email" name="email"
+                               class="form-control"
+                               placeholder="Masukkan Email"
+                               required>
+                    </div>
 
-        <tr>
-            <td>Status</td>
-            <td>:</td>
-            <td>
-                <select name="status_aktif">
+                    <!-- Password -->
+                    <div class="col-md-6">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password"
+                               class="form-control"
+                               placeholder="Masukkan Password"
+                               minlength="6"
+                               required>
+                    </div>
 
-                    <option value="1">
-                        Aktif
-                    </option>
+                    <!-- Konfirmasi Password -->
+                    <div class="col-md-6">
+                        <label class="form-label">Konfirmasi Password</label>
+                        <input type="password" name="konfirmasi_password"
+                               class="form-control"
+                               placeholder="Ulangi Password"
+                               minlength="6"
+                               required>
+                    </div>
 
-                    <option value="0">
-                        Tidak Aktif
-                    </option>
+                    
+                    <div class="col-md-6">
+                    <label class="form-label">Status Guru</label>
+                    <select name="status" class="form-select" required>
+                        <option value="">-- Pilih Status --</option>
+                        <option value="1">Aktif</option>
+                        <option value="0">Tidak Aktif</option>
+                    </select>
+                    </div>
 
-                </select>
-            </td>
-        </tr>
 
-        <tr>
-            <td></td>
-            <td></td>
-            <td>
-                <button
-                    type="submit"
-                    name="simpan"
-                >
-                    Simpan Guru
-                </button>
-            </td>
-        </tr>
+                </div>
 
-    </table>
+                <!-- Tombol -->
+                <div class="mt-4">
 
-</form>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-save me-1"></i>
+                        Simpan Guru
+                    </button>
+
+                    <button type="reset" class="btn btn-outline-secondary px-4 ms-1">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Reset
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
 
 </body>
-
 </html>

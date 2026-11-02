@@ -75,10 +75,12 @@ $hasil = mysqli_query($koneksi, $sql);
 <body class="bg-light">
 
 <div class="container-fluid">
-    <?php include "layout/sidebar.php"; ?>
+    <div class="row">
 
-    <main class="row">
-        <div class="col-12 col-lg-10 offset-lg-2 p-3 p-md-4">
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
+
 
             <!-- Header halaman -->
             <div class="d-flex flex-wrap justify-content-between

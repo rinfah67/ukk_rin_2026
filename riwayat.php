@@ -72,10 +72,11 @@ $jumlah = mysqli_num_rows($query);
 <body class="bg-light">
 
 <div class="container-fluid">
-    <?php include "layout/sidebar.php"; ?>
+    <div class="row">
 
-    <main class="row">
-        <div class="col-9 offset-3 col-lg-10 offset-lg-2 p-4">
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
 
             <!-- Judul halaman -->
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">

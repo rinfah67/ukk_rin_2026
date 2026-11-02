@@ -1,182 +1,184 @@
 
 <?php
-// Mengambil nama halaman yang sedang dibuka
 $current_page = basename($_SERVER['PHP_SELF']);
-
-// Mengambil role pengguna yang login
 $role = $_SESSION['role'] ?? '';
 
-// Default: pengguna bukan wali kelas
-$is_walikelas = false;
+// Memeriksa apakah guru merupakan wali kelas
+// Variabel $is_walikelas harus sudah dibuat sebelum sidebar dipanggil
+$is_walikelas = $is_walikelas ?? false;
 
-// Mengecek apakah guru yang login merupakan wali kelas aktif
-if ($role == 'guru' && isset($koneksi)) {
-
-    $id_user = $_SESSION['id_user'] ?? 0;
-
-    // Mencari ID guru berdasarkan akun yang login
-    $query_guru = mysqli_prepare(
-        $koneksi,
-        "SELECT id FROM t_guru WHERE user_id = ? LIMIT 1"
-    );
-
-    if ($query_guru) {
-        mysqli_stmt_bind_param($query_guru, "i", $id_user);
-        mysqli_stmt_execute($query_guru);
-
-        $hasil_guru = mysqli_stmt_get_result($query_guru);
-        $data_guru = mysqli_fetch_assoc($hasil_guru);
-
-        // Jika data guru ditemukan, periksa penugasan wali kelas
-        if ($data_guru) {
-            $id_guru = $data_guru['id'];
-
-            $query_wali = mysqli_prepare(
-                $koneksi,
-                "SELECT id
-                 FROM t_wali_kelas
-                 WHERE guru_id = ?
-                   AND status_aktif = 1
-                 LIMIT 1"
-            );
-
-            if ($query_wali) {
-                mysqli_stmt_bind_param(
-                    $query_wali,
-                    "i",
-                    $id_guru
-                );
-
-                mysqli_stmt_execute($query_wali);
-
-                $hasil_wali = mysqli_stmt_get_result($query_wali);
-
-                if (mysqli_num_rows($hasil_wali) > 0) {
-                    $is_walikelas = true;
-                }
-
-                mysqli_stmt_close($query_wali);
-            }
-        }
-
-        mysqli_stmt_close($query_guru);
-    }
-}
+if ($role === "admin") {
 ?>
 
-<!-- Sidebar -->
-<div class="position-fixed top-0 start-0 vh-100
-            bg-dark text-white p-2 overflow-y-auto"
-     style="width: 222px; z-index: 1000;">
+    <!-- SIDEBAR ADMIN -->
+    <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+        <h4 class="text-white mb-4">
+            Pelanggaran Siswa
+        </h4>
 
-    <h5 class="fw-bold mt-2 mb-4 ms-1">
-        Pelanggaran Siswa
-    </h5>
+        <ul class="nav nav-pills flex-column">
 
-    <nav class="nav nav-pills flex-column gap-1">
+            <li class="nav-item mb-2">
+                <a href="dashboard.php"
+                   class="nav-link <?= ($current_page == 'dashboard.php') ? 'active' : 'text-white' ?>">
+                    Dashboard
+                </a>
+            </li>
 
-        <!-- Menu untuk semua pengguna yang sudah login -->
-        <a href="about_me.php"
-           class="nav-link <?= $current_page == 'about_me.php' ? 'active' : 'text-white'; ?>">
-            About Me
-        </a>
+            <li class="nav-item mb-2">
+                <a href="kelola_siswa.php"
+                   class="nav-link <?= ($current_page == 'kelola_siswa.php') ? 'active' : 'text-white' ?>">
+                    Data Siswa
+                </a>
+            </li>
 
-        <?php if ($role == 'admin') { ?>
+            <li class="nav-item mb-2">
+                <a href="kelola_guru.php"
+                   class="nav-link <?= ($current_page == 'kelola_guru.php') ? 'active' : 'text-white' ?>">
+                    Data Guru
+                </a>
+            </li>
 
-            <!-- Menu khusus Admin -->
-            <hr class="border-secondary">
-            <div class="text-secondary small ms-2">MENU ADMIN</div>
+            <li class="nav-item mb-2">
+                <a href="kelola_kelas.php"
+                   class="nav-link <?= ($current_page == 'kelola_kelas.php') ? 'active' : 'text-white' ?>">
+                    Data Kelas
+                </a>
+            </li>
 
-            <a href="dashboard.php"
-               class="nav-link <?= $current_page == 'dashboard.php' ? 'active' : 'text-white'; ?>">
-                dashboard
-            </a>
+            <li class="nav-item mb-2">
+                <a href="kelola_tahun_ajaran.php"
+                   class="nav-link <?= ($current_page == 'kelola_tahun_ajaran.php') ? 'active' : 'text-white' ?>">
+                    Data Tahun Ajaran
+                </a>
+            </li>
 
-            <a href="kelola_siswa.php"
-               class="nav-link <?= $current_page == 'kelola_siswa.php' ? 'active' : 'text-white'; ?>">
-                Data Siswa
-            </a>
+            <li class="nav-item mb-2">
+                <a href="kelola_wali_kelas.php"
+                   class="nav-link <?= ($current_page == 'kelola_wali_kelas.php') ? 'active' : 'text-white' ?>">
+                    Data Wali Kelas
+                </a>
+            </li>
 
-            <a href="kelola_guru.php"
-               class="nav-link <?= $current_page == 'kelola_guru.php' ? 'active' : 'text-white'; ?>">
-                Data Guru
-            </a>
+            <li class="nav-item mb-2">
+                <a href="penempatan_siswa.php"
+                   class="nav-link <?= ($current_page == 'penempatan_siswa.php') ? 'active' : 'text-white' ?>">
+                    Penempatan Siswa
+                </a>
+            </li>
 
-            <a href="kelola_kelas.php"
-               class="nav-link <?= $current_page == 'kelola_kelas.php' ? 'active' : 'text-white'; ?>">
-                Data Kelas
-            </a>
+            <li class="nav-item mb-2">
+                <a href="kelola_pelanggaran_kategori.php"
+                   class="nav-link <?= ($current_page == 'kelola_pelanggaran_kategori.php') ? 'active' : 'text-white' ?>">
+                    Kategori Pelanggaran
+                </a>
+            </li>
 
-            <a href="kelola_tahun_ajaran.php"
-               class="nav-link <?= $current_page == 'kelola_tahun_ajaran.php' ? 'active' : 'text-white'; ?>">
-                Data Tahun Ajaran
-            </a>
+            <li class="nav-item mb-2">
+                <a href="kelola_jenis_pelanggaran.php"
+                   class="nav-link <?= ($current_page == 'kelola_jenis_pelanggaran.php') ? 'active' : 'text-white' ?>">
+                    Jenis Pelanggaran
+                </a>
+            </li>
 
-            <a href="kelola_wali_kelas.php"
-               class="nav-link <?= $current_page == 'kelola_wali_kelas.php' ? 'active' : 'text-white'; ?>">
-                Data Walikelas
-            </a>
+            <li class="nav-item mb-2">
+                <a href="about_me.php"
+                   class="nav-link <?= ($current_page == 'about_me.php') ? 'active' : 'text-white' ?>">
+                    About Me
+                </a>
+            </li>
 
-            <a href="penempatan_siswa.php"
-               class="nav-link <?= $current_page == 'penempatan_siswa.php' ? 'active' : 'text-white'; ?>">
-                Penempatan Siswa
-            </a>
+            <!-- Laporan untuk Admin -->
+            <hr class="text-secondary">
 
-            <a href="kelola_pelanggaran_kategori.php"
-               class="nav-link <?= $current_page == 'kelola_pelanggaran_kategori.php' ? 'active' : 'text-white'; ?>">
-                Kategori Pelanggaran
-            </a>
+            <li class="nav-item mb-2">
+                <a href="laporan.php"
+                   class="nav-link <?= ($current_page == 'laporan.php') ? 'active' : 'text-white' ?>">
+                    Laporan
+                </a>
+            </li>
 
-            <a href="laporan.php"
-               class="nav-link <?= $current_page == 'laporan.php' ? 'active' : 'text-white'; ?>">
-                Laporan
-            </a>
+            <li class="nav-item">
+                <a href="logout.php" class="nav-link text-danger">
+                    Logout
+                </a>
+            </li>
 
-        <?php } elseif ($role == 'guru') { ?>
+        </ul>
+    </div>
 
-            <!-- Menu Guru -->
-            <hr class="border-secondary">
-            <div class="text-secondary small ms-2">MENU GURU</div>
+<?php
+} elseif ($role === "guru") {
+?>
 
-            <a href="dashboard.php"
-               class="nav-link <?= $current_page == 'dashboard.php' ? 'active' : 'text-white'; ?>">
-                Dashboard
-            </a>
+    <!-- SIDEBAR GURU -->
+    <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+        <h4 class="text-white mb-4">
+            Pelanggaran Siswa
+        </h4>
 
-            <a href="kelola_catatan_pelanggaran.php"
-               class="nav-link <?= $current_page == 'kelola_catatan_pelanggaran.php' ? 'active' : 'text-white'; ?>">
-                Catat Pelanggaran
-            </a>
+        <ul class="nav nav-pills flex-column">
 
-            <a href="riwayat.php"
-               class="nav-link <?= $current_page == 'riwayat.php' ? 'active' : 'text-white'; ?>">
-                Riwayat
-            </a>
+            <li class="nav-item mb-2">
+                <a href="dashboard.php"
+                   class="nav-link <?= ($current_page == 'dashboard.php') ? 'active' : 'text-white' ?>">
+                    Dashboard
+                </a>
+            </li>
 
-            <a href="rekap_poin.php"
-               class="nav-link <?= $current_page == 'rekap_poin.php' ? 'active' : 'text-white'; ?>">
-                Rekap Poin
-            </a>
+            <li class="nav-item mb-2">
+                <a href="kelola_catatan_pelanggaran.php"
+                   class="nav-link <?= ($current_page == 'kelola_catatan_pelanggaran.php') ? 'active' : 'text-white' ?>">
+                    Catat Pelanggaran
+                </a>
+            </li>
 
-            <!-- Menu tambahan khusus Wali Kelas -->
+            <li class="nav-item mb-2">
+                <a href="tindakan.php"
+                   class="nav-link <?= ($current_page == 'tindakan.php') ? 'active' : 'text-white' ?>">
+                    Tindakan
+                </a>
+            </li>
+
+            <li class="nav-item mb-2">
+                <a href="riwayat.php"
+                   class="nav-link <?= ($current_page == 'riwayat.php') ? 'active' : 'text-white' ?>">
+                    Riwayat
+                </a>
+            </li>
+
+            <li class="nav-item mb-2">
+                <a href="rekap_poin.php"
+                   class="nav-link <?= ($current_page == 'rekap_poin.php') ? 'active' : 'text-white' ?>">
+                    Rekap Poin
+                </a>
+            </li>
+
+            <!-- Laporan khusus Wali Kelas -->
             <?php if ($is_walikelas) { ?>
 
-                <hr class="border-secondary">
+                <hr class="text-secondary">
 
-                <a href="laporan.php"
-                   class="nav-link <?= $current_page == 'laporan.php' ? 'active' : 'text-white'; ?>">
-                    Laporan 
-                </a>
+                <li class="nav-item mb-2">
+                    <a href="laporan.php"
+                       class="nav-link <?= ($current_page == 'laporan.php') ? 'active' : 'text-white' ?>">
+                        Laporan
+                    </a>
+                </li>
 
             <?php } ?>
 
-        <?php } ?>
+            <hr class="text-secondary">
 
-        <hr class="border-secondary">
+            <li class="nav-item">
+                <a href="logout.php" class="nav-link text-danger">
+                    Logout
+                </a>
+            </li>
 
-        <a href="logout.php" class="nav-link text-danger">
-            Logout
-        </a>
+        </ul>
+    </div>
 
-    </nav>
-</div>
+<?php
+}
+?>

@@ -42,9 +42,11 @@ if (!$query) {
 
 <div class="container-fluid">
     <div class="row">
+
         <?php include 'layout/sidebar.php'; ?>
 
-        <main class="col-12 col-lg-10 offset-lg-2 p-3 p-md-4">
+        <main class="col-md-9 col-lg-10 p-4">
+
 
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                 <div>

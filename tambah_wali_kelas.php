@@ -88,10 +88,14 @@ unset($_SESSION['pesan_error']);
 </head>
 
 <body>
+    
+<div class="container-fluid">
+    <div class="row">
 
-<?php include 'layout/sidebar.php'; ?>
+        <?php include 'layout/sidebar.php'; ?>
 
-<main class="col-12 col-lg-10 offset-lg-2 p-3 p-md-4">
+        <main class="col-md-9 col-lg-10 p-4">
+
 
     <!-- Judul halaman -->
     <div class="d-flex align-items-center gap-3 mb-4">

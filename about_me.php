@@ -30,11 +30,13 @@ $role = $_SESSION['role'] ?? 'guru';
 </head>
 
 <body class="bg-light">
+<div class="container-fluid">
+    <div class="row">
 
-<?php include "layout/sidebar.php"; ?>
+        <?php include 'layout/sidebar.php'; ?>
 
-<!-- Konten utama -->
-<main class="container-fluid p-4" style="margin-left: 222px; width: calc(100% - 222px);">
+        <main class="col-md-9 col-lg-10 p-4">
+
 
     <!-- Judul halaman -->
     <div class="mb-4">
