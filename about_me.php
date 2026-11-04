@@ -10,7 +10,7 @@ if (!isset($_SESSION['login'])) {
 }
 
 // Mengambil nama pengguna
-$nama = $_SESSION['name'] ?? 'Pelajar';
+$nama = $_SESSION['name'] ?? 'Muhamad Fahrin Adam';
 $role = $_SESSION['role'] ?? 'guru';
 ?>
 

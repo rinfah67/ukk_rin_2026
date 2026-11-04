@@ -44,7 +44,11 @@ $tahun = mysqli_query($koneksi,
     <title>Edit Kelas Siswa</title>
 </head>
 <body>
+<div class="row">
 
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
 <h1>Edit Kelas Siswa</h1>
 <a href="kelola_kelas.php">Kembali ke Kelola Kelas</a>
 <hr>

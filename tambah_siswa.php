@@ -28,7 +28,12 @@ $query_kelas = mysqli_query($koneksi, "
 </head>
 
 <body class="bg-light">
+<div class="container-fluid">
+    <div class="row">
 
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
 <div class="container-fluid p-4">
 
     <div class="card border-0 shadow-sm rounded-4">
@@ -46,74 +51,89 @@ $query_kelas = mysqli_query($koneksi, "
 
             <form action="proses_tambah_siswa.php" method="POST">
 
-                
-<div class="row g-3">
+                <div class="row g-3">
 
-    <!-- Kolom kiri -->
-    <div class="col-md-6">
-        <label class="form-label">NIS</label>
-        <input type="text" name="nis" class="form-control"
-               placeholder="Masukkan NIS" required>
-    </div>
+  <!-- NIS -->
+            <div class="mb-3">
+                <label for="nis" class="form-label">NIS</label>
+                <input type="text" name="nis"
+                    id="nis"
+                    class="form-control"
+                    maxlength="10"
+                    pattern="[0-9]{1,10}"
+                    inputmode="numeric"
+                    title="NIS harus berupa angka maksimal 10 digit"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
+                    required>
+            </div>
 
-    <!-- Kolom kanan -->
-    <div class="col-md-6">
-        <label class="form-label">NISN</label>
-        <input type="text" name="nisn" class="form-control"
-               placeholder="Masukkan NISN"
-               maxlength="10" required>
-    </div>
+            <!-- NISN -->
+            <div class="mb-3">
+                <label for="nisn" class="form-label">NISN</label>
+                <input type="text" name="nisn"
+                    id="nisn"
+                    class="form-control"
+                    maxlength="10"
+                    pattern="[0-9]{1,10}"
+                    inputmode="numeric"
+                    title="NISN harus berupa angka maksimal 10 digit"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
+                    required>
+            </div>
+                   <!-- Kolom kiri -->
+                    <div class="col-md-6">
+                        <label class="form-label">Nama Siswa</label>
+                        <input type="text" name="nama" class="form-control"
+                               placeholder="Masukkan Nama Siswa" required>
+                    </div>
 
-    <!-- Kolom kiri -->
-    <div class="col-md-6">
-        <label class="form-label">Nama Siswa</label>
-        <input type="text" name="nama" class="form-control"
-               placeholder="Masukkan Nama Siswa" required>
-    </div>
+                    <!-- Kolom kanan -->
+                    <div class="col-md-6">
+                        <label class="form-label">Jenis Kelamin</label>
+                        <select name="jenis_kelamin" class="form-select" required>
+                            <option value="">-- Pilih Jenis Kelamin --</option>
+                            <option value="L">Laki-laki</option>
+                            <option value="P">Perempuan</option>
+                        </select>
+                    </div>
 
-    <!-- Kolom kanan -->
-    <div class="col-md-6">
-        <label class="form-label">Jenis Kelamin</label>
-        <select name="jenis_kelamin" class="form-select" required>
-            <option value="">-- Pilih Jenis Kelamin --</option>
-            <option value="L">Laki-laki</option>
-            <option value="P">Perempuan</option>
-        </select>
-    </div>
+                    <!-- Kolom kiri -->
+                    <div class="col-md-6">
+                        <label class="form-label">Tanggal Lahir</label>
+                        <input type="date" name="tanggal_lahir"
+                               class="form-control">
+                    </div>
 
-    <!-- Kolom kiri -->
-    <div class="col-md-6">
-        <label class="form-label">Tanggal Lahir</label>
-        <input type="date" name="tanggal_lahir"
-               class="form-control">
-    </div>
+                    <!-- Kolom kanan -->
+                    <div class="col-md-6">
+                        <label class="form-label">Alamat</label>
+                        <textarea name="alamat" class="form-control"
+                                  rows="1" placeholder="Masukkan Alamat"></textarea>
+                    </div>
 
-    <!-- Kolom kanan -->
-    <div class="col-md-6">
-        <label class="form-label">Alamat</label>
-        <textarea name="alamat" class="form-control"
-                  rows="1" placeholder="Masukkan Alamat"></textarea>
-    </div>
+                    <!-- Kolom kiri -->
+                    <div class="col-md-6">
+                        <label class="form-label">Kelas</label>
+                        <select name="kelas_id" class="form-select" required>
+                            <option value="">-- Pilih Kelas --</option>
+                            <?php while ($kelas = mysqli_fetch_assoc($query_kelas)) { ?>
+                                <option value="<?= $kelas['id']; ?>">
+                                    <?= htmlspecialchars($kelas['nama']); ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
 
-    <!-- Kolom kiri -->
-    <div class="col-md-6">
-        <label class="form-label">Kelas</label>
-        <select name="kelas_id" class="form-select" required>
-            <option value="">-- Pilih Kelas --</option>
-            <!-- Pilihan kelas dari database -->
-        </select>
-    </div>
+                    <!-- Kolom kanan -->
+                    <div class="col-md-6">
+                        <label class="form-label">Status Siswa</label>
+                        <select name="status_aktif" class="form-select" required>
+                            <option value="1">Aktif</option>
+                            <option value="0">Tidak Aktif</option>
+                        </select>
+                    </div>
 
-    <!-- Kolom kanan -->
-    <div class="col-md-6">
-        <label class="form-label">Status Siswa</label>
-        <select name="status_aktif" class="form-select" required>
-            <option value="1">Aktif</option>
-            <option value="0">Tidak Aktif</option>
-        </select>
-    </div>
-
-</div>
+                </div>
 
                 <!-- Tombol -->
                 <div class="mt-4">
@@ -134,6 +154,24 @@ $query_kelas = mysqli_query($koneksi, "
     </div>
 
 </div>
+
+<!-- Membatasi NIS dan NISN maksimal 10 angka -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const nis = document.getElementById('nis');
+    const nisn = document.getElementById('nisn');
+
+    nis.addEventListener('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+    });
+
+    nisn.addEventListener('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+    });
+
+});
+</script>
 
 </body>
 </html>

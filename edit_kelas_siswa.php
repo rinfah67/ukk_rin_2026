@@ -54,7 +54,11 @@ if (!$kelas) {
 </head>
 
 <body>
+<div class="row">
 
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
 <h1>Edit Kelas</h1>
 
 <a href="kelola_kelas.php">

@@ -21,7 +21,12 @@ if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
 </head>
+<div class="container-fluid">
+    <div class="row">
 
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
 <body class="bg-light">
 
 <div class="container-fluid p-4">
@@ -47,8 +52,12 @@ if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
                         <label class="form-label">NIP</label>
                         <input type="text" name="nip"
                                class="form-control"
-                               placeholder="Masukkan NIP"
-                               required>
+                                maxlength="10"
+                                pattern="[0-9]{1,10}"
+                                inputmode="numeric"
+                                title="NIS harus berupa angka maksimal 10 digit"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
+                                required>
                     </div>
 
                     <!-- Nama Guru -->

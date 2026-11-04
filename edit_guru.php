@@ -1,32 +1,39 @@
-<?php
 
+<?php
 session_start();
 
 include 'config/koneksi.php';
 
-if (!isset($_SESSION['login'])) {
+// Memeriksa apakah pengguna sudah login
+if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
     header("Location: login.php");
     exit;
 }
 
-if ($_SESSION['role'] != 'admin') {
+// Hanya admin yang boleh mengakses
+if (($_SESSION['role'] ?? '') != 'admin') {
     echo "Akses ditolak!";
     exit;
 }
 
+// Memeriksa ID guru
 if (!isset($_GET['id'])) {
     echo "ID guru tidak ditemukan!";
     exit;
 }
 
-$id = $_GET['id'];
+$id = (int) $_GET['id'];
 
-$sql = "SELECT *
-        FROM t_guru
-        WHERE id='$id'";
+// Mengambil data guru
+$stmt = mysqli_prepare($koneksi, "
+    SELECT * FROM t_guru
+    WHERE id = ?
+");
 
-$hasil = mysqli_query($koneksi, $sql);
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
 
+$hasil = mysqli_stmt_get_result($stmt);
 $guru = mysqli_fetch_assoc($hasil);
 
 if (!$guru) {
@@ -34,6 +41,10 @@ if (!$guru) {
     exit;
 }
 
+// Fungsi untuk mengamankan output
+function aman_edit_guru($teks) {
+    return htmlspecialchars($teks ?? '', ENT_QUOTES, 'UTF-8');
+}
 ?>
 
 <!DOCTYPE html>
@@ -41,98 +52,176 @@ if (!$guru) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Edit Guru</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Edit Guru - SI PELANG</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="bg-light">
 
-<h1>Edit Guru</h1>
+<div class="container-fluid">
+    <div class="row">
 
-<a href="kelola_guru.php">
-    Kembali ke Kelola Guru
-</a>
+        <!-- Sidebar -->
+        <?php include 'layout/sidebar.php'; ?>
 
-<hr>
+        <!-- Konten Utama -->
+        <main class="col-md-9 col-lg-10 p-4">
 
-<form action="proses_edit_guru.php" method="POST">
+            <!-- Judul Halaman -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
 
-    <input
-        type="hidden"
-        name="id"
-        value="<?php echo $guru['id']; ?>"
-    >
+                <div>
+                    <h3 class="fw-bold mb-1">Edit Guru</h3>
+                    <p class="text-muted mb-0">
+                        Ubah informasi data guru.
+                    </p>
+                </div>
 
-    <p>
-        NIP
-        <br>
-        <input
-            type="text"
-            name="nip"
-            value="<?php echo $guru['nip']; ?>"
-            required
-        >
-    </p>
+                <a href="kelola_guru.php" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Kembali
+                </a>
 
-    <p>
-        Nama Guru
-        <br>
-        <input
-            type="text"
-            name="nama"
-            value="<?php echo $guru['nama']; ?>"
-            required
-        >
-    </p>
+            </div>
 
-    <p>
-        Email
-        <br>
-        <input
-            type="email"
-            name="email"
-            value="<?php echo $guru['email']; ?>"
-            required
-        >
-    </p>
+            <!-- Card Form -->
+            <div class="card border-0 shadow-sm">
 
-    <p>
-        Status
-        <br>
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-person-gear me-2"></i>
+                        Form Edit Guru
+                    </h5>
+                </div>
 
-        <select name="status_aktif">
+                <div class="card-body p-4">
 
-            <option
-                value="1"
-                <?php
-                if ($guru['status_aktif'] == 1) {
-                    echo "selected";
-                }
-                ?>
-            >
-                Aktif
-            </option>
+                    <form action="proses_edit_guru.php" method="POST" id="formEditGuru">
 
-            <option
-                value="0"
-                <?php
-                if ($guru['status_aktif'] == 0) {
-                    echo "selected";
-                }
-                ?>
-            >
-                Tidak Aktif
-            </option>
+                        <input
+                            type="hidden"
+                            name="id"
+                            value="<?= aman_edit_guru($guru['id']); ?>"
+                        >
 
-        </select>
+                        <!-- NIP -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                NIP
+                            </label>
 
-    </p>
+                            <input
+                                type="text"
+                                name="nip"
+                                class="form-control"
+                                value="<?= aman_edit_guru($guru['nip']); ?>"
+                                required
+                            >
+                        </div>
 
-    <button type="submit" name="edit">
-        Simpan Perubahan
-    </button>
+                        <!-- Nama Guru -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Nama Guru
+                            </label>
 
-</form>
+                            <input
+                                type="text"
+                                name="nama"
+                                class="form-control"
+                                value="<?= aman_edit_guru($guru['nama']); ?>"
+                                required
+                            >
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Email
+                            </label>
+
+                            <input
+                                type="email"
+                                name="email"
+                                class="form-control"
+                                value="<?= aman_edit_guru($guru['email']); ?>"
+                                required
+                            >
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                Status Guru
+                            </label>
+
+                            <select name="status_aktif" class="form-select" required>
+
+                                <option
+                                    value="1"
+                                    <?= ($guru['status_aktif'] == 1) ? 'selected' : ''; ?>
+                                >
+                                    Aktif
+                                </option>
+
+                                <option
+                                    value="0"
+                                    <?= ($guru['status_aktif'] == 0) ? 'selected' : ''; ?>
+                                >
+                                    Tidak Aktif
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <!-- Tombol -->
+                        <div class="d-flex gap-2">
+
+                            <button type="submit" name="edit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i>
+                                Simpan Perubahan
+                            </button>
+
+                            <a href="kelola_guru.php" class="btn btn-secondary">
+                                Batal
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.getElementById('formEditGuru').addEventListener('submit', function(event) {
+
+    if (!this.checkValidity()) {
+        event.preventDefault();
+        this.reportValidity();
+        return;
+    }
+
+    if (!confirm('Apakah kamu yakin ingin menyimpan perubahan data guru?')) {
+        event.preventDefault();
+    }
+
+});
+</script>
 
 </body>
-
 </html>

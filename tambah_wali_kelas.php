@@ -88,8 +88,7 @@ unset($_SESSION['pesan_error']);
 </head>
 
 <body>
-    
-<div class="container-fluid">
+    <div class="container-fluid">
     <div class="row">
 
         <?php include 'layout/sidebar.php'; ?>

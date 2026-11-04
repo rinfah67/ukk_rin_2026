@@ -40,8 +40,12 @@ if (!$data) {
           rel="stylesheet">
 </head>
 <body class="bg-light">
+<div class="row">
 
-<div class="container py-4">
+        <?php include 'layout/sidebar.php'; ?>
+
+        <main class="col-md-9 col-lg-10 p-4">
+
     <div class="card shadow-sm">
         <div class="card-header bg-warning">
             <h4 class="mb-0">Edit Catatan Pelanggaran</h4>
