@@ -103,7 +103,7 @@ if ($status_aktif === 1) {
         $_SESSION['pesan_error'] =
             "Tidak dapat menambahkan tahun ajaran aktif karena sudah ada tahun ajaran lain yang aktif.";
 
-        header("Location: tambah_tahun_ajaran.php");
+        header("Location: kelola_tahun_ajaran.php");
         exit;
     }
 }

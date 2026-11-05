@@ -1,4 +1,3 @@
-```php
 <?php
 session_start();
 include 'config/koneksi.php';
@@ -240,4 +239,3 @@ $query_kelas = mysqli_query($koneksi, "
 
 </body>
 </html>
-```

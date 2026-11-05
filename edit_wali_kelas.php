@@ -17,7 +17,7 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
 
 // Memeriksa ID
 if (!isset($_GET['id'])) {
-    header("Location: kelola_walikelas.php");
+    header("Location: kelola_wali_kelas.php");
     exit;
 }
 
@@ -218,7 +218,7 @@ $tahun = mysqli_query($koneksi, "
                                 Simpan Perubahan
                             </button>
 
-                            <a href="kelola_walikelas.php" class="btn btn-secondary">
+                            <a href="kelola_wali_kelas.php" class="btn btn-secondary">
                                 <i class="bi bi-x-circle me-1"></i>
                                 Batal
                             </a>

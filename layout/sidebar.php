@@ -155,7 +155,7 @@ if ($role === "admin") {
             </li>
 
             <!-- Laporan khusus Wali Kelas -->
-            <?php if ($is_walikelas) { ?>
+            <?php if ($is_walikelas || $role === "admin") { ?>
 
                 <hr class="text-secondary">
 

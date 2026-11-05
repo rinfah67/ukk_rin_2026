@@ -113,7 +113,7 @@ if (mysqli_stmt_execute($stmt)) {
     // Menyimpan pesan gagal
     $_SESSION['pesan_error'] = "Gagal memperbarui data kelas: " . mysqli_error($koneksi);
 
-    header("Location: edit_kelas.php?id=" . $id);
+    header("Location: kelola_kelas.php");
     exit;
 }
 

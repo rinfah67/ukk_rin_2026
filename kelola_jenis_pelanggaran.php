@@ -138,7 +138,7 @@ if (!$query) {
 
                             <thead class="table-primary">
                                 <tr>
-                                    <th>ID</th>
+                                    <th>No</th>
                                     <th>Kode</th>
                                     <th>Jenis Pelanggaran</th>
                                     <th>Deskripsi</th>

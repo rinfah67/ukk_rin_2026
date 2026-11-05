@@ -1,250 +1,202 @@
-
 <?php
-// Memulai session dan memeriksa login
-include 'includes/cek_session.php';
-include 'config/koneksi.php';
+// Memeriksa session login
+include "includes/cek_session.php";
 
-// Mengambil jumlah seluruh siswa
-$query_siswa = mysqli_query($koneksi, "
-    SELECT COUNT(*) AS total FROM t_siswa
-");
-$data_siswa = mysqli_fetch_assoc($query_siswa);
-$total_siswa = $data_siswa['total'];
+// Mengambil data pengguna
+$nama = $_SESSION['nama'] ?? $_SESSION['nama_lengkap'] ?? '';
+$email = $_SESSION['email'] ?? '-';
+$role = $_SESSION['role'] ?? '-';
 
-// Mengambil jumlah guru yang memiliki akun guru
-$query_guru = mysqli_query($koneksi, "
-    SELECT COUNT(*) AS total
-    FROM t_guru g
-    INNER JOIN t_users u ON g.user_id = u.id
-    WHERE u.role = 'guru'
-");
-$data_guru = mysqli_fetch_assoc($query_guru);
-$total_guru = $data_guru['total'];
+// Menghubungkan database
+include "config/koneksi.php";
 
-// Mengambil jumlah kelas
-$query_kelas = mysqli_query($koneksi, "
-    SELECT COUNT(*) AS total FROM t_kelas
-");
-$data_kelas = mysqli_fetch_assoc($query_kelas);
-$total_kelas = $data_kelas['total'];
+// Menghitung jumlah data dari database
+function hitungData($koneksi, $tabel)
+{
+    $tabelDiizinkan = ['t_siswa', 't_guru', 't_kelas'];
 
-// Mengambil jumlah tahun ajaran
-$query_tahun = mysqli_query($koneksi, "
-    SELECT COUNT(*) AS total FROM t_tahun_ajaran
-");
-$data_tahun = mysqli_fetch_assoc($query_tahun);
-$total_tahun = $data_tahun['total'];
+    if (!in_array($tabel, $tabelDiizinkan, true)) {
+        return 0;
+    }
 
-// Mengambil jumlah catatan pelanggaran
-$query_pelanggaran = mysqli_query($koneksi, "
-    SELECT COUNT(*) AS total FROM t_pelanggaran_siswa
-");
-$data_pelanggaran = mysqli_fetch_assoc($query_pelanggaran);
-$total_pelanggaran = $data_pelanggaran['total'];
+    $sql = "SELECT COUNT(*) AS total FROM `$tabel`";
+    $hasil = mysqli_query($koneksi, $sql);
 
-// Mengambil total poin pelanggaran
-$query_poin = mysqli_query($koneksi, "
-    SELECT COALESCE(SUM(poin), 0) AS total
-    FROM t_pelanggaran_siswa
-");
-$data_poin = mysqli_fetch_assoc($query_poin);
-$total_poin = $data_poin['total'];
+    if (!$hasil) {
+        die(
+            "Gagal menghitung data pada tabel " .
+            htmlspecialchars($tabel) .
+            ". Periksa nama tabel di database. Error: " .
+            htmlspecialchars(mysqli_error($koneksi))
+        );
+    }
+
+    $data = mysqli_fetch_assoc($hasil);
+
+    return (int) $data['total'];
+}
+
+// Jumlah data otomatis
+$total_siswa = hitungData($koneksi, 't_siswa');
+$total_guru = hitungData($koneksi, 't_guru');
+$total_kelas = hitungData($koneksi, 't_kelas');
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Dashboard - SI PELANG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <title>Dashboard</title>
 </head>
 
-<body class="bg-light">
+<body>
 
 <div class="container-fluid">
     <div class="row">
 
-        <!-- Sidebar -->
-        <?php include "layout/sidebar.php"; ?>
+        <?php
+        include "layout/sidebar.php";
+        ?>
 
-        <!-- Konten Dashboard -->
+        <!-- KONTEN -->
         <main class="col-md-9 col-lg-10 p-4">
 
-            <!-- Judul -->
-            <div class="mb-4">
-                <h2 class="fw-bold">Dashboard</h2>
-                <p class="text-secondary mb-0">
-                    Selamat datang,
-                    <strong><?= htmlspecialchars($_SESSION['name'] ?? 'Pengguna'); ?></strong>
-                    di Sistem Informasi Pelanggaran Siswa.
-                </p>
-            </div>
+            <h2>Dashboard</h2>
 
-            <!-- Notifikasi berhasil tambah guru -->
-            <?php if (isset($_GET['pesan']) && $_GET['pesan'] == 'guru_berhasil') { ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                    Guru dan akun login berhasil ditambahkan.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+            <!-- Menampilkan data pengguna -->
+            <?php if ($role == 'guru') { ?>
+
+                <p>Selamat datang di halaman dashboard guru <b><?php echo htmlspecialchars($nama); ?></b></p>
+
+            <?php } else { ?>
+
+                <p>Selamat datang di halaman dashboard <b><?php echo htmlspecialchars($nama); ?></b></p>
+
             <?php } ?>
 
-            <!-- Notifikasi berhasil tambah siswa -->
-            <?php if (isset($_GET['pesan']) && $_GET['pesan'] == 'siswa_berhasil') { ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                    Data siswa berhasil ditambahkan.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <?php if ($role == 'admin') { ?>
+
+                <div class="row">
+
+                    <!-- CARD DATA SISWA -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Data Siswa</h5>
+
+                                <h2><?php echo $total_siswa; ?></h2>
+
+                                <a href="kelola_siswa.php"
+                                   class="btn btn-primary">
+                                    Lihat Data
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD DATA GURU -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Data Guru</h5>
+
+                                <h2><?php echo $total_guru; ?></h2>
+
+                                <a href="kelola_guru.php"
+                                   class="btn btn-primary">
+                                    Lihat Data
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD KELAS -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Kelas</h5>
+
+                                <h2><?php echo $total_kelas; ?></h2>
+
+                                <a href="kelola_kelas.php"
+                                   class="btn btn-primary">
+                                    Lihat Data
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
+
+
+            <?php } elseif ($role == 'guru') { ?>
+
+                <!-- DASHBOARD GURU -->
+                <div class="row">
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5>Catat Pelanggaran</h5>
+                                <p>Mencatat pelanggaran siswa.</p>
+
+                                <a href="catat_pelanggaran.php"
+                                   class="btn btn-primary">
+                                    Catat Sekarang
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5>Riwayat Pelanggaran</h5>
+                                <p>Melihat riwayat pelanggaran siswa.</p>
+
+                                <a href="riwayat.php"
+                                   class="btn btn-primary">
+                                    Lihat Riwayat
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5>Rekap Poin</h5>
+                                <p>Melihat jumlah poin pelanggaran.</p>
+
+                                <a href="rekap_poin.php"
+                                   class="btn btn-primary">
+                                    Lihat Rekap
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            <?php } else { ?>
+
+                <div class="alert alert-danger">
+                    Role pengguna tidak dikenali.
+                </div>
+
             <?php } ?>
-
-            <!-- Ringkasan Data -->
-            <div class="row g-3">
-
-                <!-- Data Siswa -->
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="text-secondary mb-1">Total Siswa</p>
-                                    <h3 class="fw-bold mb-0">
-                                        <?= $total_siswa; ?>
-                                    </h3>
-                                </div>
-                                <div class="bg-primary-subtle text-primary rounded p-3">
-                                    <i class="bi bi-people-fill fs-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Data Guru -->
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="text-secondary mb-1">Total Guru</p>
-                                    <h3 class="fw-bold mb-0">
-                                        <?= $total_guru; ?>
-                                    </h3>
-                                </div>
-                                <div class="bg-success-subtle text-success rounded p-3">
-                                    <i class="bi bi-person-badge-fill fs-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Data Kelas -->
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="text-secondary mb-1">Total Kelas</p>
-                                    <h3 class="fw-bold mb-0">
-                                        <?= $total_kelas; ?>
-                                    </h3>
-                                </div>
-                                <div class="bg-warning-subtle text-warning rounded p-3">
-                                    <i class="bi bi-building fs-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tahun Ajaran -->
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="text-secondary mb-1">Tahun Ajaran</p>
-                                    <h3 class="fw-bold mb-0">
-                                        <?= $total_tahun; ?>
-                                    </h3>
-                                </div>
-                                <div class="bg-info-subtle text-info rounded p-3">
-                                    <i class="bi bi-calendar-event-fill fs-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Catatan Pelanggaran -->
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="text-secondary mb-1">Catatan Pelanggaran</p>
-                                    <h3 class="fw-bold mb-0">
-                                        <?= $total_pelanggaran; ?>
-                                    </h3>
-                                </div>
-                                <div class="bg-danger-subtle text-danger rounded p-3">
-                                    <i class="bi bi-journal-text fs-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Poin -->
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="text-secondary mb-1">Total Poin Pelanggaran</p>
-                                    <h3 class="fw-bold mb-0">
-                                        <?= $total_poin; ?>
-                                    </h3>
-                                </div>
-                                <div class="bg-secondary-subtle text-secondary rounded p-3">
-                                    <i class="bi bi-clipboard-data-fill fs-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Informasi -->
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-body">
-                    <h5 class="fw-bold">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Informasi Sistem
-                    </h5>
-                    <p class="text-secondary mb-0">
-                        SI PELANG merupakan sistem informasi yang digunakan
-                        untuk mengelola data siswa, guru, serta pencatatan
-                        dan rekapitulasi pelanggaran siswa.
-                    </p>
-                </div>
-            </div>
 
         </main>
+
     </div>
 </div>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
