@@ -1,111 +1,210 @@
+
 <?php
+// proses_edit_guru.php
 
-session_start();
-
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// CEK LOGIN
-if (!isset($_SESSION['login'])) {
-    header("Location: login.php");
+// Pastikan request menggunakan POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: kelola_guru.php");
     exit;
 }
 
-// CEK ROLE
-if ($_SESSION['role'] != 'admin') {
-    echo "Akses ditolak!";
+// Ambil data dari form
+$id = (int) ($_POST['id'] ?? 0);
+$nip = trim($_POST['nip'] ?? '');
+$nama = trim($_POST['nama'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$status_aktif = $_POST['status_aktif'] ?? '';
+
+$password = $_POST['password'] ?? '';
+$konfirmasi_password = $_POST['konfirmasi_password'] ?? '';
+
+// Validasi data guru
+if (
+    $id <= 0 ||
+    $nip === '' ||
+    !preg_match('/^[0-9]{1,18}$/', $nip) ||
+    $nama === '' ||
+    !filter_var($email, FILTER_VALIDATE_EMAIL) ||
+    !in_array($status_aktif, ['0', '1'], true)
+) {
+    $_SESSION['pesan_error'] = "Data guru tidak valid.";
+    header("Location: edit_guru.php?id=" . $id);
     exit;
 }
 
-// CEK TOMBOL EDIT
-if (!isset($_POST['edit'])) {
-    header("Location: kelolaguru.php");
-    exit;
+// Validasi password jika ingin mengganti password
+if ($password !== '' || $konfirmasi_password !== '') {
+
+    if ($password === '' || $konfirmasi_password === '') {
+        $_SESSION['pesan_error'] =
+            "Password dan konfirmasi password harus diisi.";
+
+        header("Location: edit_guru.php?id=" . $id);
+        exit;
+    }
+
+    if ($password !== $konfirmasi_password) {
+        $_SESSION['pesan_error'] =
+            "Password dan konfirmasi password tidak sama.";
+
+        header("Location: edit_guru.php?id=" . $id);
+        exit;
+    }
+
+    if (strlen($password) < 8) {
+        $_SESSION['pesan_error'] =
+            "Password minimal harus 8 karakter.";
+
+        header("Location: edit_guru.php?id=" . $id);
+        exit;
+    }
 }
 
-// AMBIL DATA
-$id = $_POST['id'];
-$nip = $_POST['nip'];
-$nama = $_POST['nama'];
-$email = $_POST['email'];
-$status_aktif = $_POST['status_aktif'];
+// Mulai transaksi database
+mysqli_begin_transaction($koneksi);
 
+try {
 
-// ============================
-// CARI USER ID
-// ============================
+    // Ambil user_id berdasarkan ID guru
+    $stmt = mysqli_prepare(
+        $koneksi,
+        "SELECT user_id FROM t_guru WHERE id = ? FOR UPDATE"
+    );
 
-$sql_cari = "SELECT user_id
-             FROM t_guru
-             WHERE id='$id'";
+    if (!$stmt) {
+        throw new Exception(mysqli_error($koneksi));
+    }
 
-$hasil = mysqli_query($koneksi, $sql_cari);
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
 
-if (!$hasil) {
+    $hasil = mysqli_stmt_get_result($stmt);
+    $guru = mysqli_fetch_assoc($hasil);
 
-    echo "Gagal mencari guru: "
-         . mysqli_error($koneksi);
+    mysqli_stmt_close($stmt);
 
+    if (!$guru) {
+        throw new Exception("Data guru tidak ditemukan.");
+    }
+
+    $user_id = $guru['user_id'];
+
+    // Update data guru
+    $sql = "UPDATE t_guru SET
+                nip = ?,
+                nama = ?,
+                email = ?,
+                status_aktif = ?
+            WHERE id = ?";
+
+    $stmt = mysqli_prepare($koneksi, $sql);
+
+    if (!$stmt) {
+        throw new Exception(mysqli_error($koneksi));
+    }
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "sssii",
+        $nip,
+        $nama,
+        $email,
+        $status_aktif,
+        $id
+    );
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception(mysqli_stmt_error($stmt));
+    }
+
+    mysqli_stmt_close($stmt);
+
+    // Jika password diisi, update password akun pengguna
+    // Jika kosong, password lama tetap digunakan
+    if ($password !== '') {
+
+        if (empty($user_id)) {
+            throw new Exception(
+                "Guru belum memiliki akun pengguna."
+            );
+        }
+
+        // Mengubah password menjadi hash
+        $password_hash = password_hash(
+            $password,
+            PASSWORD_DEFAULT
+        );
+
+        // Update password pada tabel t_users
+        $sql = "UPDATE t_users
+                SET password = ?
+                WHERE id = ?";
+
+        $stmt = mysqli_prepare($koneksi, $sql);
+
+        if (!$stmt) {
+            throw new Exception(mysqli_error($koneksi));
+        }
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "si",
+            $password_hash,
+            $user_id
+        );
+
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception(mysqli_stmt_error($stmt));
+        }
+
+        // Pastikan akun pengguna ditemukan
+        if (mysqli_stmt_affected_rows($stmt) === 0) {
+
+            $cek = mysqli_prepare(
+                $koneksi,
+                "SELECT id FROM t_users WHERE id = ?"
+            );
+
+            if (!$cek) {
+                throw new Exception(mysqli_error($koneksi));
+            }
+
+            mysqli_stmt_bind_param($cek, "i", $user_id);
+            mysqli_stmt_execute($cek);
+
+            $cek_hasil = mysqli_stmt_get_result($cek);
+            $akun = mysqli_fetch_assoc($cek_hasil);
+
+            mysqli_stmt_close($cek);
+
+            if (!$akun) {
+                throw new Exception("Akun pengguna tidak ditemukan.");
+            }
+        }
+
+        mysqli_stmt_close($stmt);
+    }
+
+    // Simpan seluruh perubahan
+    mysqli_commit($koneksi);
+
+    $_SESSION['pesan_sukses'] =
+        "Data guru berhasil diperbarui.";
+
+    header("Location: kelola_guru.php");
+    exit;
+
+} catch (Exception $e) {
+
+    // Batalkan perubahan jika terjadi kesalahan
+    mysqli_rollback($koneksi);
+
+    $_SESSION['pesan_error'] = $e->getMessage();
+
+    header("Location: edit_guru.php?id=" . $id);
     exit;
 }
-
-$guru = mysqli_fetch_assoc($hasil);
-
-if (!$guru) {
-
-    echo "Data guru tidak ditemukan!";
-
-    exit;
-}
-
-$user_id = $guru['user_id'];
-
-
-// ============================
-// UPDATE t_guru
-// ============================
-
-$sql_guru = "UPDATE t_guru
-             SET
-                nip='$nip',
-                nama='$nama',
-                email='$email',
-                status_aktif='$status_aktif',
-                updated_at=CURRENT_TIMESTAMP
-             WHERE id='$id'";
-
-if (!mysqli_query($koneksi, $sql_guru)) {
-
-    echo "Gagal mengubah data guru: "
-         . mysqli_error($koneksi);
-
-    exit;
-}
-
-
-// ============================
-// UPDATE t_users
-// ============================
-
-$sql_user = "UPDATE t_users
-             SET
-                name='$nama',
-                email='$email',
-                updated_at=CURRENT_TIMESTAMP
-             WHERE id='$user_id'
-             AND role='guru'";
-
-if (!mysqli_query($koneksi, $sql_user)) {
-
-    echo "Data guru berhasil diubah, "
-         . "tetapi akun user gagal diubah: "
-         . mysqli_error($koneksi);
-
-    exit;
-}
-
-
-// KEMBALI
-header("Location: kelolaguru.php");
-exit;
-
 ?>

@@ -1,214 +1,81 @@
-```php
 <?php
-session_start();
-include 'config/koneksi.php';
 
-// Cek login
-if (!isset($_SESSION['login'])) {
-    header("Location: login.php");
-    exit;
+include "config/koneksi.php";
+
+if (isset($_POST['simpan'])) {
+
+    $siswa = $_POST['siswa'];
+    $pelanggaran = $_POST['pelanggaran'];
+
+    mysqli_query($koneksi, "
+        INSERT INTO t_pelanggaran_siswa
+        (siswa_id, pelanggaran_id)
+        VALUES
+        ('$siswa', '$pelanggaran')
+    ");
+
+    header("Location: catatan_pelanggaran.php");
 }
 
-// Cek hak akses
-if (
-    !isset($_SESSION['role']) ||
-    !in_array($_SESSION['role'], ['guru', 'admin'])
-) {
-    die("Akses ditolak.");
-}
-
-// Mengambil data siswa, kelas, dan tahun ajaran
-$siswa = mysqli_query($koneksi, "
-    SELECT
-        ks.siswa_id,
-        ks.kelas_id,
-        ks.tahun_ajaran_id,
-        s.nama AS nama_siswa,
-        k.nama AS nama_kelas,
-        ta.nama AS nama_tahun
-    FROM t_kelas_siswa ks
-    INNER JOIN t_siswa s ON s.id = ks.siswa_id
-    INNER JOIN t_kelas k ON k.id = ks.kelas_id
-    INNER JOIN t_tahun_ajaran ta ON ta.id = ks.tahun_ajaran_id
-    WHERE ks.status_aktif = 1
-      AND s.status_aktif = 1
-    ORDER BY s.nama ASC
-");
-
-if (!$siswa) {
-    die("Gagal mengambil data siswa: " . mysqli_error($koneksi));
-}
-
-// Mengambil data pelanggaran yang aktif
-$pelanggaran = mysqli_query($koneksi, "
-    SELECT id, nama, poin
-    FROM t_pelanggaran
-    WHERE status_aktif = 1
-    ORDER BY nama ASC
-");
-
-if (!$pelanggaran) {
-    die("Gagal mengambil data pelanggaran: " . mysqli_error($koneksi));
-}
 ?>
 
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<h2>Tambah Catatan Pelanggaran</h2>
 
-    <title>Tambah Catatan Pelanggaran</title>
+<form method="POST">
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-</head>
+Siswa:
+<br>
 
-<body class="bg-light">
+<select name="siswa">
 
-<div class="container py-4">
+<?php
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+$data = mysqli_query($koneksi, "SELECT * FROM t_siswa WHERE status_aktif=1");
 
-            <div class="card shadow-sm">
+while ($siswa = mysqli_fetch_assoc($data)) {
 
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Tambah Catatan Pelanggaran</h4>
-                </div>
+?>
 
-                <div class="card-body">
+<option value="<?php echo $siswa['id']; ?>">
+    <?php echo $siswa['nis']; ?> - <?php echo $siswa['nama']; ?>
+</option>
 
-                    <form action="proses_tambah_catatan.php" method="POST">
+<?php } ?>
 
-                        <!-- Pilih siswa, kelas, dan tahun ajaran -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Siswa - Kelas - Tahun Ajaran
-                            </label>
+</select>
 
-                            <select name="registrasi" class="form-select" required>
-                                <option value="">-- Pilih Siswa --</option>
+<br><br>
 
-                                <?php while ($s = mysqli_fetch_assoc($siswa)): ?>
-                                    <option value="<?=
-                                        (int)$s['siswa_id'] . '|' .
-                                        (int)$s['kelas_id'] . '|' .
-                                        (int)$s['tahun_ajaran_id']
-                                    ?>">
-                                        <?= htmlspecialchars($s['nama_siswa']) ?>
-                                        -
-                                        <?= htmlspecialchars($s['nama_kelas']) ?>
-                                        -
-                                        <?= htmlspecialchars($s['nama_tahun']) ?>
-                                    </option>
-                                <?php endwhile; ?>
+Jenis Pelanggaran:
+<br>
 
-                            </select>
-                        </div>
+<select name="pelanggaran">
 
-                        <!-- Pilih pelanggaran -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Jenis Pelanggaran
-                            </label>
+<?php
 
-                            <select name="pelanggaran_id" class="form-select" required>
-                                <option value="">-- Pilih Pelanggaran --</option>
+$data = mysqli_query($koneksi, "
+    SELECT * FROM t_pelanggaran_kategori
+    WHERE status_aktif=1
+");
 
-                                <?php while ($p = mysqli_fetch_assoc($pelanggaran)): ?>
-                                    <option value="<?= (int)$p['id'] ?>">
-                                        <?= htmlspecialchars($p['nama']) ?>
-                                        (<?= (int)$p['poin'] ?> poin)
-                                    </option>
-                                <?php endwhile; ?>
+while ($pelanggaran = mysqli_fetch_assoc($data)) {
 
-                            </select>
-                        </div>
+?>
 
-                        <!-- Tanggal -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Tanggal Pelanggaran
-                            </label>
+<option value="<?php echo $pelanggaran['id']; ?>">
+    <?php echo $pelanggaran['nama']; ?>
+</option>
 
-                            <input
-                                type="date"
-                                name="tanggal"
-                                class="form-control"
-                                value="<?= date('Y-m-d') ?>"
-                                required
-                            >
-                        </div>
+<?php } ?>
 
-                        <!-- Keterangan -->
-                        <div class="mb-3">
-                            <label class="form-label">Keterangan</label>
+</select>
 
-                            <textarea
-                                name="keterangan"
-                                class="form-control"
-                                rows="3"
-                                placeholder="Masukkan keterangan pelanggaran"
-                                required
-                            ></textarea>
-                        </div>
+<br><br>
 
-                        <!-- Tindakan -->
-                        <div class="mb-3">
-                            <label class="form-label">Tindakan</label>
+<button name="simpan">Simpan</button>
 
-                            <textarea
-                                name="tindakan"
-                                class="form-control"
-                                rows="3"
-                                placeholder="Masukkan tindakan yang diberikan"
-                            ></textarea>
-                        </div>
+</form>
 
-                        <!-- Status -->
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
+<br>
 
-                            <select name="status" class="form-select" required>
-                                <option value="Belum Ditindaklanjuti">
-                                    Belum Ditindaklanjuti
-                                </option>
-
-                                <option value="Diproses">
-                                    Diproses
-                                </option>
-
-                                <option value="Selesai">
-                                    Selesai
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Tombol -->
-                        <button type="submit" class="btn btn-primary">
-                            Simpan Catatan
-                        </button>
-
-                        <a
-                            href="kelola_catatan_pelanggaran.php"
-                            class="btn btn-secondary"
-                        >
-                            Batal
-                        </a>
-
-                    </form>
-
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-</div>
-
-</body>
-</html>
-```
+<a href="kelola_catatan_pelanggaran.php">Kembali</a>

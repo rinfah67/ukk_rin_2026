@@ -38,8 +38,10 @@ $query = mysqli_query($koneksi, "
 // Menyimpan pesan jika query database gagal
 if (!$query) {
     $pesan_query = mysqli_error($koneksi);
+    $jumlah_guru = 0;
 } else {
     $pesan_query = '';
+    $jumlah_guru = mysqli_num_rows($query);
 }
 
 // Mengambil notifikasi dari proses tambah, edit, dan hapus
@@ -225,7 +227,6 @@ unset($_SESSION['pesan_error']);
 
                             <!-- Judul kolom -->
                             <thead class="table-primary">
-
                                 <tr>
                                     <th>No.</th>
                                     <th>NIP</th>
@@ -238,146 +239,135 @@ unset($_SESSION['pesan_error']);
                                     <th>Diperbarui</th>
                                     <th>Aksi</th>
                                 </tr>
-
                             </thead>
 
                             <tbody>
 
-                                <?php if ($query && mysqli_num_rows($query) > 0): ?>
+                                <?php
+                                // Nomor urut data guru
+                                $no = 1;
 
-                                    <?php $no = 1; ?>
+                                // Menampilkan setiap data guru
+                                if ($jumlah_guru > 0) {
+                                    while ($guru = mysqli_fetch_assoc($query)) {
+                                ?>
 
-                                    <!-- Menampilkan setiap data guru -->
-                                    <?php while ($guru = mysqli_fetch_assoc($query)): ?>
+                                    <tr>
 
-                                        <tr>
+                                        <!-- Nomor urut -->
+                                        <td><?= $no++; ?></td>
 
-                                            <!-- Nomor urut -->
-                                            <td><?= $no++; ?></td>
+                                        <!-- NIP guru -->
+                                        <td>
+                                            <?= htmlspecialchars($guru['nip'] ?? '-'); ?>
+                                        </td>
 
-                                            <!-- NIP guru -->
-                                            <td>
-                                                <?= htmlspecialchars($guru['nip'] ?? '-'); ?>
-                                            </td>
+                                        <!-- Nama guru -->
+                                        <td class="fw-semibold">
+                                            <?= htmlspecialchars($guru['nama'] ?? '-'); ?>
+                                        </td>
 
-                                            <!-- Nama guru -->
-                                            <td class="fw-semibold">
-                                                <?= htmlspecialchars($guru['nama'] ?? '-'); ?>
-                                            </td>
+                                        <!-- Email guru -->
+                                        <td>
+                                            <?= htmlspecialchars($guru['email'] ?? '-'); ?>
+                                        </td>
 
-                                            <!-- Email guru -->
-                                            <td>
-                                                <?= htmlspecialchars($guru['email'] ?? '-'); ?>
-                                            </td>
+                                        <!-- Informasi akun pengguna -->
+                                        <td>
 
-                                            <!-- Informasi akun pengguna -->
-                                            <td>
+                                            <?php if (!empty($guru['user_id'])): ?>
 
-                                                <?php if (!empty($guru['user_id'])): ?>
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-link-45deg me-1"></i>
+                                                    Terhubung
+                                                </span>
 
-                                                    <span class="badge bg-success">
-                                                        <i class="bi bi-link-45deg me-1"></i>
-                                                        Terhubung
-                                                    </span>
-
-                                                    <div class="small text-secondary mt-1">
-                                                        <?= htmlspecialchars($guru['nama_akun'] ?? '-'); ?>
-                                                    </div>
-
-                                                    <div class="small text-secondary">
-                                                        <?= htmlspecialchars($guru['email_akun'] ?? '-'); ?>
-                                                    </div>
-
-                                                <?php else: ?>
-
-                                                    <span class="badge bg-warning text-dark">
-                                                        Belum terhubung
-                                                    </span>
-
-                                                <?php endif; ?>
-
-                                            </td>
-
-                                            <!-- Role akun -->
-                                            <td>
-                                                <?= htmlspecialchars($guru['role_akun'] ?? '-'); ?>
-                                            </td>
-
-                                            <!-- Status guru -->
-                                            <td>
-
-                                                <?php if ((int) $guru['status_aktif'] === 1): ?>
-
-                                                    <span class="badge bg-success">
-                                                        Aktif
-                                                    </span>
-
-                                                <?php else: ?>
-
-                                                    <span class="badge bg-secondary">
-                                                        Tidak Aktif
-                                                    </span>
-
-                                                <?php endif; ?>
-
-                                            </td>
-
-                                            <!-- Tanggal data dibuat -->
-                                            <td>
-                                                <?= htmlspecialchars($guru['created_at'] ?? '-'); ?>
-                                            </td>
-
-                                            <!-- Tanggal data diperbarui -->
-                                            <td>
-                                                <?= htmlspecialchars($guru['updated_at'] ?? '-'); ?>
-                                            </td>
-
-                                            <!-- Tombol aksi -->
-                                            <td>
-
-                                                <div class="action-buttons">
-
-                                                    <!-- Tombol Edit Guru -->
-                                                    <a href="edit_guru.php?id=<?= (int) $guru['id']; ?>"
-                                                       class="btn btn-warning btn-sm"
-                                                       title="Edit guru">
-
-                                                        <i class="bi bi-pencil-square"></i>
-
-                                                    </a>
-
-                                                    <!-- Tombol Hapus Guru -->
-                                                    <a href="hapus_guru.php?id=<?= (int) $guru['id']; ?>"
-                                                       class="btn btn-danger btn-sm"
-                                                       title="Hapus guru"
-                                                       onclick="return confirm('Yakin ingin menghapus data guru ini?');">
-
-                                                        <i class="bi bi-trash"></i>
-
-                                                    </a>
-
+                                                <div class="small text-secondary mt-1">
+                                                    <?= htmlspecialchars($guru['nama_akun'] ?? '-'); ?>
                                                 </div>
 
-                                            </td>
+                                                <div class="small text-secondary">
+                                                    <?= htmlspecialchars($guru['email_akun'] ?? '-'); ?>
+                                                </div>
 
-                                        </tr>
+                                            <?php else: ?>
 
-                                    <?php endwhile; ?>
+                                                <span class="badge bg-warning text-dark">
+                                                    Belum terhubung
+                                                </span>
 
-                                <?php elseif ($query): ?>
-
-                                    <!-- Pesan jika belum ada data guru -->
-                                    <tr>
-                                        <td colspan="10" class="text-center text-secondary py-4">
-
-                                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-
-                                            Belum ada data guru.
+                                            <?php endif; ?>
 
                                         </td>
+
+                                        <!-- Role akun -->
+                                        <td>
+                                            <?= htmlspecialchars($guru['role_akun'] ?? '-'); ?>
+                                        </td>
+
+                                        <!-- Status guru -->
+                                        <td>
+
+                                            <?php if ((int) $guru['status_aktif'] === 1): ?>
+
+                                                <span class="badge bg-success">
+                                                    Aktif
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span class="badge bg-secondary">
+                                                    Tidak Aktif
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </td>
+
+                                        <!-- Tanggal data dibuat -->
+                                        <td>
+                                            <?= htmlspecialchars($guru['created_at'] ?? '-'); ?>
+                                        </td>
+
+                                        <!-- Tanggal data diperbarui -->
+                                        <td>
+                                            <?= htmlspecialchars($guru['updated_at'] ?? '-'); ?>
+                                        </td>
+
+                                        <!-- Tombol aksi -->
+                                        <td>
+
+                                            <div class="action-buttons">
+
+                                                <!-- Tombol Edit Guru -->
+                                                <a href="edit_guru.php?id=<?= (int) $guru['id']; ?>"
+                                                   class="btn btn-warning btn-sm"
+                                                   title="Edit guru">
+
+                                                    <i class="bi bi-pencil-square"></i>
+
+                                                </a>
+
+                                                <!-- Tombol Hapus Guru -->
+                                                <a href="hapus_guru.php?id=<?= (int) $guru['id']; ?>"
+                                                   class="btn btn-danger btn-sm"
+                                                   title="Hapus guru"
+                                                   onclick="return confirm('Yakin ingin menghapus data guru ini?');">
+
+                                                    <i class="bi bi-trash"></i>
+
+                                                </a>
+
+                                            </div>
+
+                                        </td>
+
                                     </tr>
 
-                                <?php endif; ?>
+                                <?php
+                                    }
+                                }
+                                ?>
 
                             </tbody>
 

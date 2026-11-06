@@ -1,18 +1,7 @@
 
 <?php
-session_start(); // Memulai session
-include 'config/koneksi.php'; // Menghubungkan ke database
-
-// Memeriksa status login
-if (!isset($_SESSION['login'])) {
-    header("Location: login.php");
-    exit;
-}
-
-// Halaman hanya boleh diakses admin
-if ($_SESSION['role'] != 'admin') {
-    die("Akses ditolak!");
-}
+// tambah_pelanggaran_kategori.php
+include 'includes/cek_session.php';
 ?>
 
 <!DOCTYPE html>
@@ -20,99 +9,94 @@ if ($_SESSION['role'] != 'admin') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Tambah Kategori Pelanggaran</title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet">
 </head>
 
-<body class="bg-light">
-
+<body>
 <div class="container-fluid">
     <div class="row">
 
-        <!-- Sidebar -->
         <?php include 'layout/sidebar.php'; ?>
 
-        <!-- Konten utama -->
         <main class="col-md-9 col-lg-10 p-4">
 
-            <div class="mb-4">
-                <h3 class="fw-semibold">Tambah Kategori Pelanggaran</h3>
-                <p class="text-muted mb-0">
-                    Tambahkan kategori pelanggaran siswa.
-                </p>
-            </div>
+            <h1 class="mb-4">Tambah Kategori Pelanggaran</h1>
 
-            <!-- Form -->
-            <div class="card border-0 shadow-sm">
+            <?php if (isset($_SESSION['pesan_error'])) { ?>
+                <div class="alert alert-danger">
+                    <?= htmlspecialchars($_SESSION['pesan_error']); ?>
+                </div>
+                <?php unset($_SESSION['pesan_error']); ?>
+            <?php } ?>
 
-                <div class="card-header bg-primary text-white py-3">
-                    <h5 class="mb-0">
-                        <i class="bi bi-plus-circle me-2"></i>
-                        Form Kategori Pelanggaran
-                    </h5>
+            <?php if (isset($_SESSION['pesan_sukses'])) { ?>
+                <div class="alert alert-success">
+                    <?= htmlspecialchars($_SESSION['pesan_sukses']); ?>
+                </div>
+                <?php unset($_SESSION['pesan_sukses']); ?>
+            <?php } ?>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    Form Tambah Kategori Pelanggaran
                 </div>
 
-                <div class="card-body p-4">
+                <div class="card-body">
 
-                    <form action="proses_tambah_pelanggaran_kategori.php" method="POST">
+                    <form action="proses_tambah_pelanggaran_kategori.php"
+                          method="POST">
 
-                        <!-- Nama Kategori -->
                         <div class="mb-3">
-                            <label class="form-label">Nama Kategori</label>
+                            <label for="nama" class="form-label">
+                                Nama Kategori
+                            </label>
 
-                            <input
-                                type="text"
-                                name="nama"
-                                class="form-control"
-                                maxlength="100"
-                                placeholder="Masukkan nama kategori"
-                                required
-                            >
+                            <input type="text"
+                                   name="nama"
+                                   id="nama"
+                                   class="form-control"
+                                   placeholder="Contoh: Pelanggaran Ringan"
+                                   maxlength="100"
+                                   required>
                         </div>
 
-                        <!-- Deskripsi -->
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi</label>
+                            <label for="deskripsi" class="form-label">
+                                Deskripsi
+                            </label>
 
-                            <textarea
-                                name="deskripsi"
-                                class="form-control"
-                                rows="4"
-                                placeholder="Masukkan deskripsi kategori"
-                                required
-                            ></textarea>
+                            <textarea name="deskripsi"
+                                      id="deskripsi"
+                                      class="form-control"
+                                      rows="4"
+                                      placeholder="Masukkan deskripsi kategori pelanggaran"></textarea>
                         </div>
 
-                        <!-- Status -->
                         <div class="mb-4">
-                            <label class="form-label">Status</label>
+                            <label for="status_aktif" class="form-label">
+                                Status Aktif
+                            </label>
 
-                            <select name="status_aktif" class="form-select" required>
+                            <select name="status_aktif"
+                                    id="status_aktif"
+                                    class="form-select"
+                                    required>
                                 <option value="1">Aktif</option>
                                 <option value="0">Tidak Aktif</option>
                             </select>
                         </div>
 
-                        <!-- Tombol -->
-                        <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            Simpan Kategori
+                        </button>
 
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save me-1"></i>
-                                Simpan
-                            </button>
-
-                            <a href="kelola_pelanggaran_kategori.php" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left me-1"></i>
-                                Kembali
-                            </a>
-
-                        </div>
+                        <a href="kelola_pelanggaran_kategori.php"
+                           class="btn btn-secondary">
+                            Kembali
+                        </a>
 
                     </form>
 
@@ -123,8 +107,6 @@ if ($_SESSION['role'] != 'admin') {
     </div>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>

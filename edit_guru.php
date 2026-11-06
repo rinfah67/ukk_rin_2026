@@ -1,49 +1,36 @@
-
 <?php
-session_start();
+// edit_guru.php
 
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Memeriksa apakah pengguna sudah login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
+// Ambil ID guru
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+if ($id <= 0) {
+    $_SESSION['pesan_error'] = "ID guru tidak valid.";
+    header("Location: kelola_guru.php");
     exit;
 }
 
-// Hanya admin yang boleh mengakses
-if (($_SESSION['role'] ?? '') != 'admin') {
-    echo "Akses ditolak!";
-    exit;
-}
-
-// Memeriksa ID guru
-if (!isset($_GET['id'])) {
-    echo "ID guru tidak ditemukan!";
-    exit;
-}
-
-$id = (int) $_GET['id'];
-
-// Mengambil data guru
-$stmt = mysqli_prepare($koneksi, "
-    SELECT * FROM t_guru
-    WHERE id = ?
-");
+// Ambil data guru
+$stmt = mysqli_prepare(
+    $koneksi,
+    "SELECT * FROM t_guru WHERE id = ?"
+);
 
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
 
 $hasil = mysqli_stmt_get_result($stmt);
-$guru = mysqli_fetch_assoc($hasil);
+$data = mysqli_fetch_assoc($hasil);
 
-if (!$guru) {
-    echo "Data guru tidak ditemukan!";
+mysqli_stmt_close($stmt);
+
+if (!$data) {
+    $_SESSION['pesan_error'] = "Data guru tidak ditemukan.";
+    header("Location: kelola_guru.php");
     exit;
-}
-
-// Fungsi untuk mengamankan output
-function aman_edit_guru($teks) {
-    return htmlspecialchars($teks ?? '', ENT_QUOTES, 'UTF-8');
 }
 ?>
 
@@ -54,16 +41,13 @@ function aman_edit_guru($teks) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Edit Guru - SI PELANG</title>
+    <title>Edit Guru</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet">
 </head>
 
-<body class="bg-light">
+<body>
 
 <div class="container-fluid">
     <div class="row">
@@ -74,107 +58,130 @@ function aman_edit_guru($teks) {
         <!-- Konten Utama -->
         <main class="col-md-9 col-lg-10 p-4">
 
-            <!-- Judul Halaman -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-
-                <div>
-                    <h3 class="fw-bold mb-1">Edit Guru</h3>
-                    <p class="text-muted mb-0">
-                        Ubah informasi data guru.
-                    </p>
-                </div>
+            <!-- Judul dan Tombol Kembali -->
+            <div class="mb-4">
+                <h2 class="mb-3">Edit Guru</h2>
 
                 <a href="kelola_guru.php" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Kembali
+                    Kembali ke Kelola Guru
                 </a>
-
             </div>
 
-            <!-- Card Form -->
-            <div class="card border-0 shadow-sm">
+            <!-- Pesan Error -->
+            <?php if (isset($_SESSION['pesan_error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show"
+                     role="alert">
 
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-semibold">
-                        <i class="bi bi-person-gear me-2"></i>
-                        Form Edit Guru
-                    </h5>
+                    <?= htmlspecialchars($_SESSION['pesan_error']); ?>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Close"></button>
                 </div>
 
-                <div class="card-body p-4">
+                <?php unset($_SESSION['pesan_error']); ?>
+            <?php endif; ?>
 
-                    <form action="proses_edit_guru.php" method="POST" id="formEditGuru">
+            <!-- Form Edit Guru -->
+            <div class="card shadow-sm">
 
-                        <input
-                            type="hidden"
-                            name="id"
-                            value="<?= aman_edit_guru($guru['id']); ?>"
-                        >
+                <div class="card-header bg-primary text-white">
+                    Form Edit Guru
+                </div>
+
+                <div class="card-body">
+
+                    <form action="proses_edit_guru.php" method="POST">
+
+                        <input type="hidden"
+                               name="id"
+                               value="<?= (int) $data['id']; ?>">
 
                         <!-- NIP -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                NIP
-                            </label>
-
-                            <input
-                                type="text"
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">NIP</label>
+                            <input type="text"
                                 name="nip"
                                 class="form-control"
-                                value="<?= aman_edit_guru($guru['nip']); ?>"
-                                required
-                            >
+                                placeholder="Masukkan NIP"
+                                value="<?= htmlspecialchars($data['nip'] ?? ''); ?>"
+                                maxlength="18"
+                                pattern="[0-9]{1,18}"
+                                inputmode="numeric"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18)"
+                                required>
+                            <small class="text-muted">NIP maksimal 18 digit.</small>
                         </div>
 
                         <!-- Nama Guru -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">
+                            <label for="nama" class="form-label">
                                 Nama Guru
                             </label>
 
-                            <input
-                                type="text"
-                                name="nama"
-                                class="form-control"
-                                value="<?= aman_edit_guru($guru['nama']); ?>"
-                                required
-                            >
+                            <input type="text"
+                                   class="form-control"
+                                   id="nama"
+                                   name="nama"
+                                   value="<?= htmlspecialchars($data['nama'] ?? ''); ?>"
+                                   placeholder="Masukkan Nama Guru"
+                                   required>
                         </div>
 
                         <!-- Email -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">
+                            <label for="email" class="form-label">
                                 Email
                             </label>
 
-                            <input
-                                type="email"
-                                name="email"
-                                class="form-control"
-                                value="<?= aman_edit_guru($guru['email']); ?>"
-                                required
-                            >
+                            <input type="email"
+                                   class="form-control"
+                                   id="email"
+                                   name="email"
+                                   value="<?= htmlspecialchars($data['email'] ?? ''); ?>"
+                                   placeholder="Masukkan Email Guru"
+                                   required>
                         </div>
 
-                        <!-- Status -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">
-                                Status Guru
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password"
+                                name="password"
+                                class="form-control"
+                                placeholder="Kosongkan jika tidak ingin mengganti password"
+                                minlength="6">
+                        </div>
+
+                        <!-- Konfirmasi Password -->
+                        <div class="mb-3">
+                            <label class="form-label">Konfirmasi Password</label>
+                            <input type="password"
+                                name="konfirmasi_password"
+                                class="form-control"
+                                placeholder="Ulangi password baru"
+                                minlength="6">
+                        </div>
+
+                        <!-- Status Aktif -->
+                        <div class="mb-3">
+                            <label for="status_aktif" class="form-label">
+                                Status Aktif
                             </label>
 
-                            <select name="status_aktif" class="form-select" required>
+                            <select class="form-select"
+                                    id="status_aktif"
+                                    name="status_aktif"
+                                    required>
 
-                                <option
-                                    value="1"
-                                    <?= ($guru['status_aktif'] == 1) ? 'selected' : ''; ?>
-                                >
+                                <option value="1"
+                                    <?= ($data['status_aktif'] == 1) ? 'selected' : ''; ?>>
                                     Aktif
                                 </option>
 
-                                <option
-                                    value="0"
-                                    <?= ($guru['status_aktif'] == 0) ? 'selected' : ''; ?>
-                                >
+                                <option value="0"
+                                    <?= ($data['status_aktif'] == 0) ? 'selected' : ''; ?>>
                                     Tidak Aktif
                                 </option>
 
@@ -183,16 +190,14 @@ function aman_edit_guru($teks) {
 
                         <!-- Tombol -->
                         <div class="d-flex gap-2">
-
-                            <button type="submit" name="edit" class="btn btn-primary">
-                                <i class="bi bi-save me-1"></i>
-                                Simpan Perubahan
+                            <button type="submit" class="btn btn-primary">
+                                Update Guru
                             </button>
 
-                            <a href="kelola_guru.php" class="btn btn-secondary">
+                            <a href="kelola_guru.php"
+                               class="btn btn-secondary">
                                 Batal
                             </a>
-
                         </div>
 
                     </form>
@@ -201,27 +206,11 @@ function aman_edit_guru($teks) {
             </div>
 
         </main>
+
     </div>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-document.getElementById('formEditGuru').addEventListener('submit', function(event) {
-
-    if (!this.checkValidity()) {
-        event.preventDefault();
-        this.reportValidity();
-        return;
-    }
-
-    if (!confirm('Apakah kamu yakin ingin menyimpan perubahan data guru?')) {
-        event.preventDefault();
-    }
-
-});
-</script>
 
 </body>
 </html>

@@ -112,19 +112,23 @@ if (!$query) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <a href="edit_kelas.php?id=<?= (int)$data['id'] ?>"
-                                                   class="btn btn-warning btn-sm" title="Edit">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
 
-                                                <a href="hapus_kelas.php?id=<?= (int)$data['id'] ?>"
-                                                   class="btn btn-danger btn-sm"
-                                                   title="Hapus"
-                                                   onclick="return confirm('Yakin ingin menghapus kelas ini?')">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            </div>
-                                        </td>
+                                            <!-- Tombol Edit -->
+                                            <a href="edit_kelas.php?id=<?= (int)$data['id'] ?>"
+                                            class="btn btn-warning btn-sm"
+                                            title="Edit">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            <!-- Tombol Hapus -->
+                                            <a href="hapus_kelas.php?id=<?= (int)$data['id'] ?>"
+                                            class="btn btn-danger btn-sm"
+                                            title="Hapus"
+                                            onclick="return confirm('Yakin ingin menghapus kelas ini?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+
+                                        </div>
                                     </tr>
                                 <?php endwhile; ?>
                             </tbody>
