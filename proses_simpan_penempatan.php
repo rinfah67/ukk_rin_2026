@@ -1,11 +1,20 @@
+
 <?php
 // proses_simpan_penempatan.php
 
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Pastikan data dikirim melalui form POST
+// Pastikan data dikirim melalui POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: penempatan_siswa.php");
+    exit;
+}
+
+// Fungsi untuk kembali dengan pesan error
+function kembaliDenganError($pesan)
+{
+    $_SESSION['pesan_error'] = $pesan;
     header("Location: penempatan_siswa.php");
     exit;
 }
@@ -14,25 +23,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $siswa_id = filter_input(INPUT_POST, 'siswa_id', FILTER_VALIDATE_INT);
 $tahun_ajaran_id = filter_input(INPUT_POST, 'tahun_ajaran_id', FILTER_VALIDATE_INT);
 $kelas_id = filter_input(INPUT_POST, 'kelas_id', FILTER_VALIDATE_INT);
-$tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
-$tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
+
+$tanggal_mulai = trim($_POST['tanggal_mulai'] ?? '');
+$tanggal_selesai = trim($_POST['tanggal_selesai'] ?? '');
 $status_aktif = $_POST['status_aktif'] ?? '';
 
-// Validasi data wajib
+// 1. Validasi data wajib
 if (
     !$siswa_id ||
     !$tahun_ajaran_id ||
     !$kelas_id ||
-    empty($tanggal_mulai) ||
-    empty($tanggal_selesai) ||
-    !in_array((string)$status_aktif, ['0', '1'], true)
+    $tanggal_mulai === '' ||
+    $tanggal_selesai === '' ||
+    !in_array((string) $status_aktif, ['0', '1'], true)
 ) {
-    $_SESSION['pesan_error'] = "Semua data penempatan wajib diisi.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Semua data penempatan wajib diisi.");
 }
 
-// Validasi format tanggal
+// Ubah status menjadi integer
+$status_aktif = (int) $status_aktif;
+
+// 2. Validasi format tanggal
 $mulai = DateTime::createFromFormat('!Y-m-d', $tanggal_mulai);
 $selesai = DateTime::createFromFormat('!Y-m-d', $tanggal_selesai);
 
@@ -42,25 +53,28 @@ if (
     $mulai->format('Y-m-d') !== $tanggal_mulai ||
     $selesai->format('Y-m-d') !== $tanggal_selesai
 ) {
-    $_SESSION['pesan_error'] = "Format tanggal tidak valid.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Format tanggal tidak valid.");
 }
 
-// Validasi urutan tanggal
+// 3. Validasi urutan tanggal
 if ($tanggal_selesai < $tanggal_mulai) {
-    $_SESSION['pesan_error'] =
-        "Tanggal selesai tidak boleh sebelum tanggal mulai.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
 }
 
-// Pastikan siswa tersedia dan aktif
+// 4. Pastikan siswa tersedia dan aktif
 $stmt = mysqli_prepare(
     $koneksi,
-    "SELECT id FROM t_siswa
-     WHERE id = ? AND status_aktif = 1"
+    "SELECT id
+     FROM t_siswa
+     WHERE id = ?
+     AND status_aktif = 1
+     LIMIT 1"
 );
+
+if (!$stmt) {
+    kembaliDenganError("Gagal memeriksa data siswa.");
+}
+
 mysqli_stmt_bind_param($stmt, "i", $siswa_id);
 mysqli_stmt_execute($stmt);
 mysqli_stmt_store_result($stmt);
@@ -69,17 +83,51 @@ $siswa_valid = mysqli_stmt_num_rows($stmt) > 0;
 mysqli_stmt_close($stmt);
 
 if (!$siswa_valid) {
-    $_SESSION['pesan_error'] = "Siswa tidak ditemukan atau tidak aktif.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Siswa tidak ditemukan atau tidak aktif.");
 }
 
-// Pastikan tahun ajaran tersedia dan aktif
+// 5. Pastikan siswa belum memiliki penempatan aktif pada tahun ajaran yang sama
 $stmt = mysqli_prepare(
     $koneksi,
-    "SELECT id FROM t_tahun_ajaran
-     WHERE id = ? AND status_aktif = 1"
+    "SELECT id
+     FROM t_kelas_siswa
+     WHERE siswa_id = ?
+     AND tahun_ajaran_id = ?
+     AND status_aktif = 1
+     LIMIT 1"
 );
+
+if (!$stmt) {
+    kembaliDenganError("Gagal memeriksa penempatan siswa.");
+}
+
+mysqli_stmt_bind_param($stmt, "ii", $siswa_id, $tahun_ajaran_id);
+mysqli_stmt_execute($stmt);
+mysqli_stmt_store_result($stmt);
+
+$siswa_sudah_ditempatkan = mysqli_stmt_num_rows($stmt) > 0;
+mysqli_stmt_close($stmt);
+
+if ($siswa_sudah_ditempatkan) {
+    kembaliDenganError(
+        "Siswa tersebut sudah memiliki penempatan aktif pada tahun ajaran ini."
+    );
+}
+
+// 6. Pastikan tahun ajaran tersedia dan aktif
+$stmt = mysqli_prepare(
+    $koneksi,
+    "SELECT id
+     FROM t_tahun_ajaran
+     WHERE id = ?
+     AND status_aktif = 1
+     LIMIT 1"
+);
+
+if (!$stmt) {
+    kembaliDenganError("Gagal memeriksa tahun ajaran.");
+}
+
 mysqli_stmt_bind_param($stmt, "i", $tahun_ajaran_id);
 mysqli_stmt_execute($stmt);
 mysqli_stmt_store_result($stmt);
@@ -88,17 +136,23 @@ $tahun_valid = mysqli_stmt_num_rows($stmt) > 0;
 mysqli_stmt_close($stmt);
 
 if (!$tahun_valid) {
-    $_SESSION['pesan_error'] = "Tahun ajaran tidak ditemukan atau tidak aktif.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Tahun ajaran tidak ditemukan atau tidak aktif.");
 }
 
-// Pastikan kelas tersedia dan aktif
+// 7. Pastikan kelas tersedia dan aktif
 $stmt = mysqli_prepare(
     $koneksi,
-    "SELECT id FROM t_kelas
-     WHERE id = ? AND status_aktif = 1"
+    "SELECT id
+     FROM t_kelas
+     WHERE id = ?
+     AND status_aktif = 1
+     LIMIT 1"
 );
+
+if (!$stmt) {
+    kembaliDenganError("Gagal memeriksa kelas.");
+}
+
 mysqli_stmt_bind_param($stmt, "i", $kelas_id);
 mysqli_stmt_execute($stmt);
 mysqli_stmt_store_result($stmt);
@@ -107,12 +161,10 @@ $kelas_valid = mysqli_stmt_num_rows($stmt) > 0;
 mysqli_stmt_close($stmt);
 
 if (!$kelas_valid) {
-    $_SESSION['pesan_error'] = "Kelas tidak ditemukan atau tidak aktif.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Kelas tidak ditemukan atau tidak aktif.");
 }
 
-// Simpan data penempatan siswa
+// 8. Simpan data penempatan siswa
 $sql = "INSERT INTO t_kelas_siswa
         (
             siswa_id,
@@ -127,11 +179,10 @@ $sql = "INSERT INTO t_kelas_siswa
 $stmt = mysqli_prepare($koneksi, $sql);
 
 if (!$stmt) {
-    $_SESSION['pesan_error'] = "Gagal menyiapkan query penyimpanan.";
-    header("Location: penempatan_siswa.php");
-    exit;
+    kembaliDenganError("Gagal menyiapkan query penyimpanan.");
 }
 
+// Hubungkan parameter
 mysqli_stmt_bind_param(
     $stmt,
     "iiissi",
@@ -143,16 +194,25 @@ mysqli_stmt_bind_param(
     $status_aktif
 );
 
+// 9. Jalankan penyimpanan
 if (mysqli_stmt_execute($stmt)) {
-    $_SESSION['pesan_sukses'] = "Penempatan siswa berhasil disimpan.";
-} else {
-    $_SESSION['pesan_error'] =
-        "Gagal menyimpan penempatan siswa: " . mysqli_stmt_error($stmt);
+
+    mysqli_stmt_close($stmt);
+
+    $_SESSION['pesan_sukses'] =
+        "Penempatan siswa berhasil disimpan.";
+
+    header("Location: penempatan_siswa.php");
+    exit;
 }
 
+// Jika gagal menyimpan
+$pesan = mysqli_stmt_error($stmt);
 mysqli_stmt_close($stmt);
 
-// Kembali ke halaman penempatan
+$_SESSION['pesan_error'] =
+    "Gagal menyimpan penempatan siswa: " . $pesan;
+
 header("Location: penempatan_siswa.php");
 exit;
 ?>

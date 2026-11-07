@@ -1,18 +1,28 @@
 
 <?php
 // penempatan_siswa.php
+
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Ambil daftar siswa aktif
+// Ambil daftar siswa aktif yang BELUM memiliki penempatan aktif
 $siswa = mysqli_query($koneksi, "
-    SELECT id, nis, nama
-    FROM t_siswa
-    WHERE status_aktif = 1
-    ORDER BY nama ASC
+    SELECT
+        s.id,
+        s.nis,
+        s.nama
+    FROM t_siswa s
+    WHERE s.status_aktif = 1
+    AND NOT EXISTS (
+        SELECT 1
+        FROM t_kelas_siswa ks
+        WHERE ks.siswa_id = s.id
+        AND ks.status_aktif = 1
+    )
+    ORDER BY s.nama ASC
 ");
 
-// Ambil daftar tahun ajaran aktif
+// Ambil hanya tahun ajaran yang aktif
 $tahun = mysqli_query($koneksi, "
     SELECT id, nama
     FROM t_tahun_ajaran
@@ -28,7 +38,7 @@ $kelas = mysqli_query($koneksi, "
     ORDER BY nama ASC
 ");
 
-// Ambil data penempatan siswa
+// Ambil data seluruh penempatan siswa
 $sql = "
     SELECT
         ks.id,
@@ -49,10 +59,16 @@ $sql = "
 ";
 
 $hasil = mysqli_query($koneksi, $sql);
+
+// Periksa jika query gagal
+if (!$siswa || !$tahun || !$kelas || !$hasil) {
+    die("Gagal mengambil data: " . mysqli_error($koneksi));
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,10 +93,10 @@ $hasil = mysqli_query($koneksi, $sql);
 <div class="container-fluid">
     <div class="row">
 
+        <!-- SIDEBAR -->
         <?php include 'layout/sidebar.php'; ?>
 
         <main class="col-md-9 col-lg-10 p-4">
-
 
             <!-- Header halaman -->
             <div class="d-flex flex-wrap justify-content-between
@@ -107,6 +123,7 @@ $hasil = mysqli_query($koneksi, $sql);
             <?php if (isset($_SESSION['pesan_sukses'])) { ?>
                 <div class="alert alert-success alert-dismissible fade show"
                      role="alert">
+
                     <i class="bi bi-check-circle-fill me-2"></i>
                     <?= htmlspecialchars($_SESSION['pesan_sukses']) ?>
 
@@ -121,6 +138,7 @@ $hasil = mysqli_query($koneksi, $sql);
             <?php if (isset($_SESSION['pesan_error'])) { ?>
                 <div class="alert alert-danger alert-dismissible fade show"
                      role="alert">
+
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
                     <?= htmlspecialchars($_SESSION['pesan_error']) ?>
 
@@ -148,7 +166,7 @@ $hasil = mysqli_query($koneksi, $sql);
 
                         <div class="row g-3">
 
-                            <!-- Pilih siswa -->
+                            <!-- Pilih siswa yang belum ditempatkan -->
                             <div class="col-12 col-md-6">
                                 <label for="siswa_id"
                                        class="form-label fw-semibold">
@@ -171,7 +189,7 @@ $hasil = mysqli_query($koneksi, $sql);
                                 </select>
                             </div>
 
-                            <!-- Pilih tahun ajaran -->
+                            <!-- Pilih tahun ajaran aktif -->
                             <div class="col-12 col-md-6">
                                 <label for="tahun_ajaran_id"
                                        class="form-label fw-semibold">
@@ -265,6 +283,7 @@ $hasil = mysqli_query($koneksi, $sql);
 
                         <!-- Tombol -->
                         <div class="d-flex flex-wrap gap-2 mt-4">
+
                             <button type="submit" class="btn btn-primary px-4">
                                 <i class="bi bi-save me-1"></i>
                                 Simpan Penempatan
@@ -275,6 +294,7 @@ $hasil = mysqli_query($koneksi, $sql);
                                 <i class="bi bi-arrow-counterclockwise me-1"></i>
                                 Reset
                             </button>
+
                         </div>
 
                     </form>
@@ -321,8 +341,7 @@ $hasil = mysqli_query($koneksi, $sql);
                                 <?php
                                 $no = 1;
 
-                                if ($hasil) {
-                                    while ($row = mysqli_fetch_assoc($hasil)) {
+                                while ($row = mysqli_fetch_assoc($hasil)) {
                                 ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
@@ -371,10 +390,7 @@ $hasil = mysqli_query($koneksi, $sql);
                                             <?php } ?>
                                         </td>
                                     </tr>
-                                <?php
-                                    }
-                                }
-                                ?>
+                                <?php } ?>
                             </tbody>
 
                         </table>
@@ -387,8 +403,8 @@ $hasil = mysqli_query($koneksi, $sql);
                 Si Pelang &copy; <?= date('Y') ?>
             </p>
 
-        </div>
-    </main>
+        </main>
+    </div>
 </div>
 
 <!-- Bootstrap JavaScript -->
