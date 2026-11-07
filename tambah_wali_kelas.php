@@ -1,5 +1,7 @@
+
 <?php
 // tambah_wali_kelas.php
+
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
@@ -12,31 +14,40 @@ $tahun = mysqli_query(
      ORDER BY id DESC"
 );
 
-// 2. Mengambil kelas yang belum memiliki wali kelas
+// 2. Mengambil kelas yang belum memiliki wali kelas aktif
 $kelas = mysqli_query(
     $koneksi,
-    "SELECT id, nama
-     FROM t_kelas
-     WHERE id NOT IN (
-         SELECT kelas_id
-         FROM t_wali_kelas
-         WHERE status_aktif = 1
+    "SELECT k.id, k.nama
+     FROM t_kelas k
+     WHERE k.status_aktif = 1
+     AND NOT EXISTS (
+         SELECT 1
+         FROM t_wali_kelas wk
+         WHERE wk.kelas_id = k.id
+         AND wk.status_aktif = 1
      )
-     ORDER BY nama ASC"
+     ORDER BY k.nama ASC"
 );
 
-// 3. Mengambil guru yang belum menjadi wali kelas
+// 3. Mengambil guru yang belum menjadi wali kelas aktif
 $guru = mysqli_query(
     $koneksi,
-    "SELECT id, nama
-     FROM t_guru
-     WHERE id NOT IN (
-         SELECT guru_id
-         FROM t_wali_kelas
-         WHERE status_aktif = 1
+    "SELECT g.id, g.nama
+     FROM t_guru g
+     WHERE g.status_aktif = 1
+     AND NOT EXISTS (
+         SELECT 1
+         FROM t_wali_kelas wk
+         WHERE wk.guru_id = g.id
+         AND wk.status_aktif = 1
      )
-     ORDER BY nama ASC"
+     ORDER BY g.nama ASC"
 );
+
+// Menampilkan pesan error jika query gagal
+if (!$tahun || !$kelas || !$guru) {
+    die("Gagal mengambil data: " . mysqli_error($koneksi));
+}
 ?>
 
 <!DOCTYPE html>
@@ -46,7 +57,7 @@ $guru = mysqli_query(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Tambah Wali Kelas</title>
+    <title>Tambah Wali Kelas - SI PELANG</title>
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
@@ -75,8 +86,7 @@ $guru = mysqli_query(
                 <div class="card-body">
 
                     <form action="proses_tambah_wali_kelas.php"
-                          method="POST"
-                          id="formTambahWaliKelas">
+                          method="POST">
 
                         <!-- TAHUN AJARAN -->
                         <div class="mb-3">

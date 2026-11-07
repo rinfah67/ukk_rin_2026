@@ -42,6 +42,20 @@ $data = mysqli_fetch_assoc($query);
 $pesan_error = $_SESSION['pesan_error'] ?? '';
 unset($_SESSION['pesan_error']);
 
+// Daftar pilihan jurusan
+$daftar_jurusan = [
+    'RPL',
+    'TKJ',
+    'TKR',
+    'TBSM',
+    'BDPM'
+];
+
+// Memastikan jurusan lama tetap tersedia jika tidak ada dalam daftar
+if (!in_array($data['jurusan'], $daftar_jurusan)) {
+    $daftar_jurusan[] = $data['jurusan'];
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -111,7 +125,6 @@ unset($_SESSION['pesan_error']);
             <!-- Card form edit kelas -->
             <div class="card border-0 shadow-sm rounded-3">
 
-                <!-- Header card -->
                 <div class="card-header bg-white py-3">
 
                     <h5 class="fw-bold mb-0">
@@ -121,7 +134,6 @@ unset($_SESSION['pesan_error']);
 
                 </div>
 
-                <!-- Isi form -->
                 <div class="card-body p-4">
 
                     <form action="proses_edit_kelas.php"
@@ -183,20 +195,32 @@ unset($_SESSION['pesan_error']);
 
                         </div>
 
-                        <!-- Jurusan -->
+                        <!-- Jurusan dropdown -->
                         <div class="mb-3">
 
                             <label for="jurusan" class="form-label fw-semibold">
                                 Jurusan
                             </label>
 
-                            <input type="text"
-                                   class="form-control"
-                                   id="jurusan"
-                                   name="jurusan"
-                                   value="<?= htmlspecialchars($data['jurusan']); ?>"
-                                   placeholder="Contoh: RPL"
-                                   required>
+                            <select class="form-select"
+                                    id="jurusan"
+                                    name="jurusan"
+                                    required>
+
+                                <option value="">-- Pilih Jurusan --</option>
+
+                                <?php foreach ($daftar_jurusan as $jurusan): ?>
+
+                                    <option value="<?= htmlspecialchars($jurusan); ?>"
+                                        <?= $data['jurusan'] == $jurusan ? 'selected' : ''; ?>>
+
+                                        <?= htmlspecialchars($jurusan); ?>
+
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
 
                         </div>
 
