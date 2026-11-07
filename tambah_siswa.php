@@ -133,10 +133,9 @@ $query_kelas = mysqli_query($koneksi, "
                         </select>
                     </div>
 
-                </div>
-
                 <!-- Tombol -->
                 <div class="mt-4">
+
                     <button type="submit" class="btn btn-primary px-4">
                         <i class="bi bi-save me-1"></i>
                         Simpan Siswa
@@ -146,6 +145,12 @@ $query_kelas = mysqli_query($koneksi, "
                         <i class="bi bi-arrow-counterclockwise me-1"></i>
                         Reset
                     </button>
+
+                    <a href="kelola_siswa.php" class="btn btn-outline-secondary px-4 ms-1">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Kembali
+                    </a>
+
                 </div>
 
             </form>
