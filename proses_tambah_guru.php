@@ -1,132 +1,156 @@
 
 <?php
-// proses_tambah_guru.php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include 'config/koneksi.php';
 
-// Memeriksa login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
+// =====================================
+// CEK SESSION LOGIN
+// =====================================
+if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Hanya admin
+// =====================================
+// CEK AKSES ADMIN
+// =====================================
 if (($_SESSION['role'] ?? '') !== 'admin') {
-    die("Akses ditolak!");
+    http_response_code(403);
+    exit("Akses ditolak!");
 }
 
-// Memastikan request POST
+// =====================================
+// CEK METHOD POST
+// =====================================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: tambah_guru.php");
     exit;
 }
 
-// Mengambil data dari form
+// =====================================
+// AMBIL DATA FORM
+// =====================================
 $nip = trim($_POST['nip'] ?? '');
+$jenis_kelamin = trim($_POST['jenis_kelamin'] ?? '');
 $nama = trim($_POST['nama'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $konfirmasi_password = $_POST['konfirmasi_password'] ?? '';
-$status = $_POST['status_aktif'] ?? '';
+$status = (int)($_POST['status_aktif'] ?? 1);
 
-// Validasi data wajib
+// =====================================
+// VALIDASI DATA
+// =====================================
 if (
     $nip === '' ||
+    $jenis_kelamin === '' ||
     $nama === '' ||
     $email === '' ||
     $password === '' ||
-    $konfirmasi_password === '' ||
-    !in_array((string)$status, ['0', '1'], true)
+    $konfirmasi_password === ''
 ) {
-    die("Semua data wajib diisi.");
+    exit("Semua data wajib diisi.");
 }
 
-// Validasi NIP maksimal 18 digit
 if (!preg_match('/^[0-9]{1,18}$/', $nip)) {
-    die("NIP harus berupa angka maksimal 18 digit.");
+    exit("NIP harus berupa angka maksimal 18 digit.");
 }
 
-// Validasi nama
-if (strlen($nama) > 255) {
-    die("Nama guru terlalu panjang.");
+if (!in_array($jenis_kelamin, ['Laki-laki', 'Perempuan'], true)) {
+    exit("Jenis kelamin tidak valid.");
 }
 
-// Validasi email
+if (mb_strlen($nama) > 150) {
+    exit("Nama maksimal 150 karakter.");
+}
+
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    die("Format email tidak valid.");
+    exit("Format email tidak valid.");
 }
 
-// Validasi password
 if (strlen($password) < 6) {
-    die("Password minimal 6 karakter.");
+    exit("Password minimal 6 karakter.");
 }
 
-// Validasi konfirmasi password
 if ($password !== $konfirmasi_password) {
-    die("Konfirmasi password tidak sama.");
+    exit("Konfirmasi password tidak cocok.");
 }
 
-// Cek NIP sudah terdaftar
-$stmt = mysqli_prepare($koneksi, "
-    SELECT id
-    FROM t_guru
-    WHERE nip = ?
-");
+if (!in_array($status, [0, 1], true)) {
+    exit("Status tidak valid.");
+}
+
+// =====================================
+// CEK NIP DUPLIKAT
+// =====================================
+$stmt = mysqli_prepare(
+    $koneksi,
+    "SELECT id FROM t_guru WHERE nip = ? LIMIT 1"
+);
 
 if (!$stmt) {
-    die("Query NIP gagal: " . mysqli_error($koneksi));
+    exit("Gagal memeriksa NIP: " . mysqli_error($koneksi));
 }
 
 mysqli_stmt_bind_param($stmt, "s", $nip);
 mysqli_stmt_execute($stmt);
-
 $hasil = mysqli_stmt_get_result($stmt);
 
 if (mysqli_num_rows($hasil) > 0) {
     mysqli_stmt_close($stmt);
-    die("NIP sudah terdaftar.");
+    exit("NIP sudah terdaftar.");
 }
 
 mysqli_stmt_close($stmt);
 
-// Cek email sudah terdaftar
-$stmt = mysqli_prepare($koneksi, "
-    SELECT id
-    FROM t_users
-    WHERE email = ?
-");
+// =====================================
+// CEK EMAIL DUPLIKAT
+// =====================================
+$stmt = mysqli_prepare(
+    $koneksi,
+    "SELECT id FROM t_users WHERE email = ? LIMIT 1"
+);
 
 if (!$stmt) {
-    die("Query email gagal: " . mysqli_error($koneksi));
+    exit("Gagal memeriksa email: " . mysqli_error($koneksi));
 }
 
 mysqli_stmt_bind_param($stmt, "s", $email);
 mysqli_stmt_execute($stmt);
-
 $hasil = mysqli_stmt_get_result($stmt);
 
 if (mysqli_num_rows($hasil) > 0) {
     mysqli_stmt_close($stmt);
-    die("Email sudah terdaftar.");
+    exit("Email sudah digunakan.");
 }
 
 mysqli_stmt_close($stmt);
 
-// Mengenkripsi password
+// =====================================
+// HASH PASSWORD
+// =====================================
 $password_hash = password_hash($password, PASSWORD_DEFAULT);
+$remember_token = bin2hex(random_bytes(25));
 
-// Memulai transaksi database
+// =====================================
+// MULAI TRANSAKSI
+// =====================================
 mysqli_begin_transaction($koneksi);
 
 try {
 
-    // 1. Menyimpan akun pengguna ke t_users
-    $stmt = mysqli_prepare($koneksi, "
-        INSERT INTO t_users
-        (name, email, password, role)
-        VALUES (?, ?, ?, 'guru')
-    ");
+    // SIMPAN AKUN LOGIN
+    $sql_user = "INSERT INTO t_users
+        (name, email, password, remember_token, role)
+        VALUES (?, ?, ?, ?, 'guru')";
+
+    $stmt = mysqli_prepare($koneksi, $sql_user);
 
     if (!$stmt) {
         throw new Exception(mysqli_error($koneksi));
@@ -134,27 +158,26 @@ try {
 
     mysqli_stmt_bind_param(
         $stmt,
-        "sss",
+        "ssss",
         $nama,
         $email,
-        $password_hash
+        $password_hash,
+        $remember_token
     );
 
     if (!mysqli_stmt_execute($stmt)) {
         throw new Exception(mysqli_stmt_error($stmt));
     }
 
-    // Mengambil ID akun pengguna
     $user_id = mysqli_insert_id($koneksi);
-
     mysqli_stmt_close($stmt);
 
-    // 2. Menyimpan data guru ke t_guru
-    $stmt = mysqli_prepare($koneksi, "
-        INSERT INTO t_guru
-        (user_id, nip, nama, status_aktif)
-        VALUES (?, ?, ?, ?)
-    ");
+    // SIMPAN DATA GURU
+    $sql_guru = "INSERT INTO t_guru
+        (nip, jenis_kelamin, nama, email, status_aktif, user_id)
+        VALUES (?, ?, ?, ?, ?, ?)";
+
+    $stmt = mysqli_prepare($koneksi, $sql_guru);
 
     if (!$stmt) {
         throw new Exception(mysqli_error($koneksi));
@@ -162,11 +185,13 @@ try {
 
     mysqli_stmt_bind_param(
         $stmt,
-        "issi",
-        $user_id,
+        "ssssii",
         $nip,
+        $jenis_kelamin,
         $nama,
-        $status
+        $email,
+        $status,
+        $user_id
     );
 
     if (!mysqli_stmt_execute($stmt)) {
@@ -175,18 +200,23 @@ try {
 
     mysqli_stmt_close($stmt);
 
-    // 3. Menyimpan transaksi
+    // SIMPAN PERUBAHAN
     mysqli_commit($koneksi);
 
-    // Kembali ke halaman kelola guru
     header("Location: kelola_guru.php?pesan=berhasil");
     exit;
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
 
-    // Membatalkan transaksi jika gagal
     mysqli_rollback($koneksi);
 
-    die("Gagal menambahkan guru: " . $e->getMessage());
+    http_response_code(500);
+
+    echo "<h3>Gagal Menambahkan Guru</h3>";
+    echo "<p>" .
+        htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') .
+        "</p>";
+    echo '<a href="tambah_guru.php">Kembali</a>';
+    exit;
 }
 ?>

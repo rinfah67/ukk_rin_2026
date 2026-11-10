@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id = (int) ($_POST['id'] ?? 0);
 $nip = trim($_POST['nip'] ?? '');
 $nama = trim($_POST['nama'] ?? '');
+$jenis_kelamin = trim($_POST['jenis_kelamin'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $status_aktif = $_POST['status_aktif'] ?? '';
 
@@ -27,6 +28,7 @@ if (
     $nip === '' ||
     !preg_match('/^[0-9]{1,18}$/', $nip) ||
     $nama === '' ||
+    !in_array($jenis_kelamin, ['Laki-laki', 'Perempuan'], true) ||
     !filter_var($email, FILTER_VALIDATE_EMAIL) ||
     !in_array($status_aktif, ['0', '1'], true)
 ) {
@@ -96,6 +98,7 @@ try {
     $sql = "UPDATE t_guru SET
                 nip = ?,
                 nama = ?,
+                jenis_kelamin = ?,
                 email = ?,
                 status_aktif = ?
             WHERE id = ?";
@@ -108,9 +111,10 @@ try {
 
     mysqli_stmt_bind_param(
         $stmt,
-        "sssii",
+        "ssssii",
         $nip,
         $nama,
+        $jenis_kelamin,
         $email,
         $status_aktif,
         $id
@@ -122,8 +126,7 @@ try {
 
     mysqli_stmt_close($stmt);
 
-    // Jika password diisi, update password akun pengguna
-    // Jika kosong, password lama tetap digunakan
+    // Update password jika diisi
     if ($password !== '') {
 
         if (empty($user_id)) {
@@ -132,13 +135,11 @@ try {
             );
         }
 
-        // Mengubah password menjadi hash
         $password_hash = password_hash(
             $password,
             PASSWORD_DEFAULT
         );
 
-        // Update password pada tabel t_users
         $sql = "UPDATE t_users
                 SET password = ?
                 WHERE id = ?";
@@ -199,12 +200,12 @@ try {
 
 } catch (Exception $e) {
 
-    // Batalkan perubahan jika terjadi kesalahan
     mysqli_rollback($koneksi);
 
     $_SESSION['pesan_error'] = $e->getMessage();
+        "Data guru gagal diperbarui.";
 
-    header("Location: edit_guru.php?id=" . $id);
+    header("Location: kelola_guru.php?id=" . $id);
     exit;
 }
 ?>
