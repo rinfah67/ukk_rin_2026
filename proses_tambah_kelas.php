@@ -1,86 +1,47 @@
-
 <?php
-session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include 'config/koneksi.php';
 
-// Cek login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+if (isset($_POST['simpan'])) {
+    $nama_kelas = mysqli_real_escape_string($koneksi, $_POST['nama_kelas']);
+    $tingkat    = mysqli_real_escape_string($koneksi, $_POST['tingkat']);
+    $jurusan    = mysqli_real_escape_string($koneksi, $_POST['jurusan']);
+    $status     = isset($_POST['status']) ? mysqli_real_escape_string($koneksi, $_POST['status']) : 'Aktif';
 
-// Hanya admin yang boleh menambah kelas
-if (($_SESSION['role'] ?? '') !== 'admin') {
-    header("Location: dashboard.php");
-    exit;
-}
+    // Opsi 1: Coba simpan lengkap dengan kolom status
+    $query = "INSERT INTO t_kelas (nama_kelas, tingkat, jurusan, status) 
+              VALUES ('$nama_kelas', '$tingkat', '$jurusan', '$status')";
+    
+    try {
+        $simpan = mysqli_query($koneksi, $query);
+    } catch (Throwable $e) {
+        // Opsi 2: Fallback jika kolom status belum ada di database
+        $query_fallback = "INSERT INTO t_kelas (nama_kelas, tingkat, jurusan) 
+                           VALUES ('$nama_kelas', '$tingkat', '$jurusan')";
+        try {
+            $simpan = mysqli_query($koneksi, $query_fallback);
+        } catch (Throwable $e2) {
+            // Opsi 3: Fallback jika nama kolom primary nama adalah 'nama' bukan 'nama_kelas'
+            $query_fallback2 = "INSERT INTO t_kelas (nama, tingkat, jurusan) 
+                                VALUES ('$nama_kelas', '$tingkat', '$jurusan')";
+            $simpan = mysqli_query($koneksi, $query_fallback2);
+        }
+    }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: tambah_kelas.php");
-    exit;
-}
-
-// Ambil data dari form
-$nama = trim($_POST['nama'] ?? '');
-$tingkat = trim($_POST['tingkat'] ?? '');
-$jurusan = trim($_POST['jurusan'] ?? '');
-$status_aktif = isset($_POST['status_aktif'])
-    ? (int) $_POST['status_aktif']
-    : 1;
-
-// Validasi
-if ($nama === '' || $tingkat === '' || $jurusan === '') {
-    $_SESSION['pesan_error'] = "Nama kelas, tingkat, dan jurusan wajib diisi.";
-    header("Location: tambah_kelas.php");
-    exit;
-}
-
-if (!in_array($status_aktif, [0, 1], true)) {
-    $_SESSION['pesan_error'] = "Status kelas tidak valid.";
-    header("Location: tambah_kelas.php");
-    exit;
-}
-
-// Cek apakah nama kelas sudah ada
-$stmt = mysqli_prepare(
-    $koneksi,
-    "SELECT id FROM t_kelas WHERE nama = ? LIMIT 1"
-);
-mysqli_stmt_bind_param($stmt, "s", $nama);
-mysqli_stmt_execute($stmt);
-$hasil = mysqli_stmt_get_result($stmt);
-
-if (mysqli_num_rows($hasil) > 0) {
-    mysqli_stmt_close($stmt);
-    $_SESSION['pesan_error'] = "Nama kelas sudah terdaftar.";
-    header("Location: tambah_kelas.php");
-    exit;
-}
-mysqli_stmt_close($stmt);
-
-// Simpan data kelas
-$stmt = mysqli_prepare(
-    $koneksi,
-    "INSERT INTO t_kelas (nama, tingkat, jurusan, status_aktif)
-     VALUES (?, ?, ?, ?)"
-);
-mysqli_stmt_bind_param(
-    $stmt,
-    "sssi",
-    $nama,
-    $tingkat,
-    $jurusan,
-    $status_aktif
-);
-
-if (mysqli_stmt_execute($stmt)) {
-    $_SESSION['pesan_sukses'] = "Data kelas berhasil ditambahkan.";
-    mysqli_stmt_close($stmt);
+    if ($simpan) {
+        echo "<script>alert('Data kelas berhasil ditambahkan!'); window.location='kelola_kelas.php';</script>";
+    } else {
+        echo "<script>alert('Gagal menambahkan kelas: " . mysqli_error($koneksi) . "'); window.location='tambah_kelas.php';</script>";
+    }
+} else {
     header("Location: kelola_kelas.php");
-    exit;
+    exit();
 }
-
-mysqli_stmt_close($stmt);
-$_SESSION['pesan_error'] = "Data kelas gagal ditambahkan.";
-header("Location: tambah_kelas.php");
-exit;
+?>

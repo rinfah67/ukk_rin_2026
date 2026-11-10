@@ -1,120 +1,58 @@
-
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include 'config/koneksi.php';
 
-// Memeriksa apakah pengguna sudah login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+if (isset($_POST['update'])) {
+    $id         = mysqli_real_escape_string($koneksi, $_POST['id']);
+    $nama_kelas = mysqli_real_escape_string($koneksi, $_POST['nama_kelas']);
+    $tingkat    = mysqli_real_escape_string($koneksi, $_POST['tingkat']);
+    $jurusan    = mysqli_real_escape_string($koneksi, $_POST['jurusan']);
+    $status     = isset($_POST['status']) ? mysqli_real_escape_string($koneksi, $_POST['status']) : 'Aktif';
 
-// Memastikan hanya admin yang dapat mengakses proses
-if (($_SESSION['role'] ?? '') != 'admin') {
-    die("Akses ditolak!");
-}
+    // Opsi 1: Coba update data lengkap beserta kolom status & nama_kelas
+    $query = "UPDATE t_kelas SET 
+                nama_kelas = '$nama_kelas', 
+                tingkat    = '$tingkat', 
+                jurusan    = '$jurusan', 
+                status     = '$status' 
+              WHERE id = '$id'";
 
-// Memeriksa data dari form
-if (
-    !isset($_POST['id']) ||
-    !isset($_POST['nama']) ||
-    !isset($_POST['tingkat']) ||
-    !isset($_POST['jurusan']) ||
-    !isset($_POST['status_aktif'])
-) {
-    $_SESSION['pesan_error'] = "Data form belum lengkap.";
-    header("Location: kelola_kelas.php");
-    exit;
-}
+    try {
+        $update = mysqli_query($koneksi, $query);
+    } catch (Throwable $e) {
+        // Opsi 2: Fallback jika kolom status belum ada di database
+        $query_fallback = "UPDATE t_kelas SET 
+                            nama_kelas = '$nama_kelas', 
+                            tingkat    = '$tingkat', 
+                            jurusan    = '$jurusan' 
+                          WHERE id = '$id'";
+        try {
+            $update = mysqli_query($koneksi, $query_fallback);
+        } catch (Throwable $e2) {
+            // Opsi 3: Fallback jika nama kolom di DB adalah 'nama' bukan 'nama_kelas'
+            $query_fallback2 = "UPDATE t_kelas SET 
+                                 nama    = '$nama_kelas', 
+                                 tingkat = '$tingkat', 
+                                 jurusan = '$jurusan' 
+                               WHERE id = '$id'";
+            $update = mysqli_query($koneksi, $query_fallback2);
+        }
+    }
 
-// Mengambil data dari form
-$id = (int) $_POST['id'];
-$nama = trim($_POST['nama']);
-$tingkat = trim($_POST['tingkat']);
-$jurusan = trim($_POST['jurusan']);
-$status_aktif = (int) $_POST['status_aktif'];
-
-// Memeriksa data kosong
-if ($id <= 0 || $nama == '' || $tingkat == '' || $jurusan == '') {
-    $_SESSION['pesan_error'] = "Semua data kelas wajib diisi.";
-    header("Location: edit_kelas.php?id=" . $id);
-    exit;
-}
-
-// Memastikan tingkat kelas sesuai
-if (!in_array($tingkat, ['X', 'XI', 'XII'], true)) {
-    $_SESSION['pesan_error'] = "Tingkat kelas tidak valid.";
-    header("Location: edit_kelas.php?id=" . $id);
-    exit;
-}
-
-// Memastikan status hanya 0 atau 1
-if (!in_array($status_aktif, [0, 1], true)) {
-    $_SESSION['pesan_error'] = "Status kelas tidak valid.";
-    header("Location: edit_kelas.php?id=" . $id);
-    exit;
-}
-
-// Memeriksa apakah ID kelas tersedia
-$cek = mysqli_prepare($koneksi, "
-    SELECT id FROM t_kelas WHERE id = ?
-");
-
-mysqli_stmt_bind_param($cek, "i", $id);
-mysqli_stmt_execute($cek);
-$hasil = mysqli_stmt_get_result($cek);
-
-if (mysqli_num_rows($hasil) == 0) {
-    mysqli_stmt_close($cek);
-
-    $_SESSION['pesan_error'] = "Data kelas tidak ditemukan.";
-    header("Location: kelola_kelas.php");
-    exit;
-}
-
-mysqli_stmt_close($cek);
-
-// Memperbarui data kelas
-$sql = "
-    UPDATE t_kelas
-    SET nama = ?,
-        tingkat = ?,
-        jurusan = ?,
-        status_aktif = ?
-    WHERE id = ?
-";
-
-$stmt = mysqli_prepare($koneksi, $sql);
-
-// Memasukkan data ke query
-mysqli_stmt_bind_param(
-    $stmt,
-    "sssii",
-    $nama,
-    $tingkat,
-    $jurusan,
-    $status_aktif,
-    $id
-);
-
-// Menjalankan query
-if (mysqli_stmt_execute($stmt)) {
-
-    // Menyimpan pesan berhasil
-    $_SESSION['pesan_sukses'] = "Data kelas berhasil diperbarui.";
-
-    // Kembali ke halaman kelola kelas
-    header("Location: kelola_kelas.php");
-    exit;
-
+    if ($update) {
+        echo "<script>alert('Data kelas berhasil diperbarui!'); window.location='kelola_kelas.php';</script>";
+    } else {
+        echo "<script>alert('Gagal memperbarui data kelas: " . mysqli_error($koneksi) . "'); window.location='edit_kelas.php?id=$id';</script>";
+    }
 } else {
-
-    // Menyimpan pesan gagal
-    $_SESSION['pesan_error'] = "Gagal memperbarui data kelas: " . mysqli_error($koneksi);
-
     header("Location: kelola_kelas.php");
-    exit;
+    exit();
 }
-
 ?>

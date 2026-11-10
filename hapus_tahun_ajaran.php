@@ -1,32 +1,19 @@
-
 <?php
-
 session_start();
 include 'config/koneksi.php';
 
-if (!isset($_SESSION['login'])) {
-    header("Location: login.php");
-    exit;
-}
+if (isset($_GET['id'])) {
+    $id = mysqli_real_escape_string($koneksi, $_GET['id']);
 
-if ($_SESSION['role'] != 'admin') {
-    die("Akses ditolak!");
-}
+    $query = "DELETE FROM t_tahun_ajaran WHERE id = '$id'";
 
-if (!isset($_GET['id'])) {
-    die("ID tahun ajaran tidak ditemukan!");
-}
-
-$id = (int) $_GET['id'];
-
-$sql = "DELETE FROM t_tahun_ajaran WHERE id='$id'";
-
-if (mysqli_query($koneksi, $sql)) {
-    header("Location: kelola_tahun_ajaran.php");
-    exit;
+    if (mysqli_query($koneksi, $query)) {
+        echo "<script>alert('Tahun ajaran berhasil dihapus!'); window.location='kelola_tahun_ajaran.php';</script>";
+    } else {
+        echo "<script>alert('Gagal menghapus data: " . mysqli_error($koneksi) . "'); window.location='kelola_tahun_ajaran.php';</script>";
+    }
 } else {
-    echo "Gagal menghapus tahun ajaran. Data mungkin masih digunakan di kelas siswa. "
-         . mysqli_error($koneksi);
+    header("Location: kelola_tahun_ajaran.php");
+    exit();
 }
-
 ?>

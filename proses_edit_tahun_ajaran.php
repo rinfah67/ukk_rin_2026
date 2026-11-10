@@ -1,108 +1,76 @@
-```php
 <?php
-session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include 'config/koneksi.php';
 
-// Memeriksa login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+if (isset($_POST['update'])) {
+    $id              = mysqli_real_escape_string($koneksi, $_POST['id']);
+    $tahun_ajaran    = isset($_POST['tahun_ajaran']) ? mysqli_real_escape_string($koneksi, $_POST['tahun_ajaran']) : '';
+    $status          = isset($_POST['status']) ? mysqli_real_escape_string($koneksi, $_POST['status']) : 'Aktif';
+    $tanggal_mulai   = !empty($_POST['tanggal_mulai']) ? mysqli_real_escape_string($koneksi, $_POST['tanggal_mulai']) : NULL;
+    $tanggal_selesai = !empty($_POST['tanggal_selesai']) ? mysqli_real_escape_string($koneksi, $_POST['tanggal_selesai']) : NULL;
 
-// Hanya admin yang boleh mengedit
-if (($_SESSION['role'] ?? '') !== 'admin') {
-    header("Location: dashboard.php");
-    exit;
-}
-
-// Pastikan menggunakan POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: kelola_tahun_ajaran.php");
-    exit;
-}
-
-// Mengambil data dari form
-$id = (int) ($_POST['id'] ?? 0);
-$nama = trim($_POST['nama'] ?? '');
-$tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
-$tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
-$status_aktif = $_POST['status_aktif'] ?? '';
-
-// Validasi data
-if (
-    $id <= 0 ||
-    $nama === '' ||
-    $tanggal_mulai === '' ||
-    $tanggal_selesai === '' ||
-    !in_array($status_aktif, ['0', '1'], true)
-) {
-    header("Location: kelola_tahun_ajaran.php?pesan=data_kosong");
-    exit;
-}
-
-// Validasi tanggal
-if ($tanggal_selesai < $tanggal_mulai) {
-    header("Location: kelola_tahun_ajaran.php?pesan=tanggal_tidak_valid");
-    exit;
-}
-
-// Memulai transaksi
-mysqli_begin_transaction($koneksi);
-
-try {
-
-    // Jika tahun ajaran ini diaktifkan,
-    // nonaktifkan semua tahun ajaran lainnya
-    if ($status_aktif === '1') {
-        $query_nonaktif = mysqli_prepare($koneksi, "
-            UPDATE t_tahun_ajaran
-            SET status_aktif = 0
-            WHERE id != ?
-        ");
-
-        mysqli_stmt_bind_param($query_nonaktif, "i", $id);
-        mysqli_stmt_execute($query_nonaktif);
-        mysqli_stmt_close($query_nonaktif);
+    // 1. Baca Struktur Kolom Tabel Asli
+    $query_cols = mysqli_query($koneksi, "SHOW COLUMNS FROM t_tahun_ajaran");
+    $columns = [];
+    if ($query_cols) {
+        while ($row = mysqli_fetch_assoc($query_cols)) {
+            $columns[] = strtolower($row['Field']);
+        }
     }
 
-    // Update tahun ajaran yang dipilih
-    $query = mysqli_prepare($koneksi, "
-        UPDATE t_tahun_ajaran
-        SET
-            nama = ?,
-            tanggal_mulai = ?,
-            tanggal_selesai = ?,
-            status_aktif = ?
-        WHERE id = ?
-    ");
+    $col_id     = in_array('id', $columns) ? 'id' : (in_array('id_tahun_ajaran', $columns) ? 'id_tahun_ajaran' : $columns[0]);
+    $col_status = in_array('status', $columns) ? 'status' : (in_array('stt', $columns) ? 'stt' : 'status');
 
-    $status = (int) $status_aktif;
+    // 2. PAKSA Nonaktifkan Semua Record Lain Kecuali Data yang Sedang Di-edit
+    if ($status === 'Aktif') {
+        mysqli_query($koneksi, "UPDATE t_tahun_ajaran SET `$col_status` = 'Tidak Aktif' WHERE `$col_id` != '$id'");
+    }
 
-    mysqli_stmt_bind_param(
-        $query,
-        "sssii",
-        $nama,
-        $tanggal_mulai,
-        $tanggal_selesai,
-        $status,
-        $id
-    );
+    // Deteksi nama kolom untuk 'tahun_ajaran'
+    $col_tahun = 'tahun_ajaran';
+    if (in_array('tahun_ajaran', $columns)) { $col_tahun = 'tahun_ajaran'; }
+    elseif (in_array('tahun', $columns)) { $col_tahun = 'tahun'; }
+    elseif (in_array('nama_tahun', $columns)) { $col_tahun = 'nama_tahun'; }
+    else { $col_tahun = isset($columns[1]) ? $columns[1] : 'tahun_ajaran'; }
 
-    mysqli_stmt_execute($query);
-    mysqli_stmt_close($query);
+    // 3. Susun Query Update
+    $update_pairs = [
+        "`$col_tahun` = '$tahun_ajaran'",
+        "`$col_status` = '$status'"
+    ];
 
-    // Simpan perubahan
-    mysqli_commit($koneksi);
+    if ($tanggal_mulai && (in_array('tanggal_mulai', $columns) || in_array('tgl_mulai', $columns))) {
+        $field_tm = in_array('tanggal_mulai', $columns) ? 'tanggal_mulai' : 'tgl_mulai';
+        $update_pairs[] = "`$field_tm` = '$tanggal_mulai'";
+    }
 
-    header("Location: kelola_tahun_ajaran.php?pesan=edit_berhasil");
-    exit;
+    if ($tanggal_selesai && (in_array('tanggal_selesai', $columns) || in_array('tgl_selesai', $columns))) {
+        $field_ts = in_array('tanggal_selesai', $columns) ? 'tanggal_selesai' : 'tgl_selesai';
+        $update_pairs[] = "`$field_ts` = '$tanggal_selesai'";
+    }
 
-} catch (Exception $e) {
+    if (in_array('updated_at', $columns)) {
+        $update_pairs[] = "`updated_at` = NOW()";
+    }
 
-    // Batalkan perubahan jika gagal
-    mysqli_rollback($koneksi);
+    $sql = "UPDATE t_tahun_ajaran SET " . implode(', ', $update_pairs) . " WHERE `$col_id` = '$id'";
+    $update = mysqli_query($koneksi, $sql);
 
-    die("Gagal mengedit tahun ajaran: " . $e->getMessage());
+    if ($update) {
+        echo "<script>alert('Tahun ajaran berhasil diperbarui!'); window.location='kelola_tahun_ajaran.php';</script>";
+    } else {
+        echo "<script>alert('Gagal memperbarui data: " . addslashes(mysqli_error($koneksi)) . "'); window.location='edit_tahun_ajaran.php?id=$id';</script>";
+    }
+
+} else {
+    header("Location: kelola_tahun_ajaran.php");
+    exit();
 }
 ?>
-```

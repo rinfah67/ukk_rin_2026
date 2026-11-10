@@ -1,17 +1,31 @@
 <?php
+// Tampilkan error jika terjadi masalah di PHP
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-include 'config/koneksi.php';
-
-// Fungsi bantuan untuk menghitung baris tabel secara aman
-function hitungJumlahData($koneksi, $nama_tabel) {
-    $query = @mysqli_query($koneksi, "SELECT * FROM $nama_tabel");
-    return ($query) ? mysqli_num_rows($query) : 0;
+// Cek keberadaan file koneksi
+if (file_exists('config/koneksi.php')) {
+    include 'config/koneksi.php';
+} else {
+    die("<div style='padding:20px; color:red; font-family:sans-serif;'><strong>Error:</strong> File <code>config/koneksi.php</code> tidak ditemukan!</div>");
 }
 
-// Perhitungan statistik real-time dari database
+// Fungsi aman menghitung data (tahan error jika tabel belum dibuat di phpMyAdmin)
+function hitungJumlahData($koneksi, $nama_tabel) {
+    try {
+        $query = mysqli_query($koneksi, "SELECT * FROM $nama_tabel");
+        return ($query) ? mysqli_num_rows($query) : 0;
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+// Menghitung statistik real-time dari database
 $total_siswa       = hitungJumlahData($koneksi, 't_siswa');
 $total_guru        = hitungJumlahData($koneksi, 't_guru');
 $total_kelas       = hitungJumlahData($koneksi, 't_kelas');
@@ -38,7 +52,6 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
             color: #334155;
         }
 
-        /* Styling Sidebar Gelap */
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -56,25 +69,18 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
             background-color: #2563eb;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
-        .sidebar .nav-link.text-danger:hover {
-            background-color: #ef4444;
-            color: #fff !important;
-        }
 
-        /* Card Custom dengan Border Clean */
         .card-custom {
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
         }
         .card-custom:hover {
             transform: translateY(-3px);
-            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.08);
         }
 
-        /* Box Icon pada Stat Card */
         .stat-icon {
             width: 50px;
             height: 50px;
@@ -91,18 +97,23 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar Navigation -->
-        <?php include 'layout/sidebar.php'; ?>
+        <?php 
+        if (file_exists('layout/sidebar.php')) {
+            include 'layout/sidebar.php'; 
+        } else {
+            echo "<div class='col-md-3 p-3 bg-dark text-white'>Sidebar tidak ditemukan!</div>";
+        }
+        ?>
 
         <!-- Main Content Area -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
             
-            <!-- Header Atas Dashboard -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="fa-solid fa-gauge-high text-primary"></i> Dashboard Utama
                     </h2>
-                    <p class="text-muted mb-0">Ringkasan statistik data aplikasi Si Pelang secara real-time.</p>
+                    <p class="text-muted mb-0">Selamat datang di Sistem Kedisiplinan & Pelanggaran Siswa.</p>
                 </div>
                 <div>
                     <span class="badge bg-white text-secondary border px-3 py-2 shadow-sm" style="border-radius: 10px;">
@@ -113,7 +124,6 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
 
             <!-- Grid Cards Ringkasan Statistik -->
             <div class="row g-4 mb-4">
-                <!-- Stat 1: Total Siswa -->
                 <div class="col-xl-3 col-md-6">
                     <div class="card card-custom p-4">
                         <div class="d-flex justify-content-between align-items-center">
@@ -128,7 +138,6 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
                     </div>
                 </div>
 
-                <!-- Stat 2: Total Guru -->
                 <div class="col-xl-3 col-md-6">
                     <div class="card card-custom p-4">
                         <div class="d-flex justify-content-between align-items-center">
@@ -143,7 +152,6 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
                     </div>
                 </div>
 
-                <!-- Stat 3: Total Kelas -->
                 <div class="col-xl-3 col-md-6">
                     <div class="card card-custom p-4">
                         <div class="d-flex justify-content-between align-items-center">
@@ -158,7 +166,6 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
                     </div>
                 </div>
 
-                <!-- Stat 4: Total Catatan Pelanggaran -->
                 <div class="col-xl-3 col-md-6">
                     <div class="card card-custom p-4">
                         <div class="d-flex justify-content-between align-items-center">
@@ -174,19 +181,19 @@ $total_pelanggaran = hitungJumlahData($koneksi, 't_catatan_pelanggaran');
                 </div>
             </div>
 
-            <!-- Card Banner Dashboard -->
+            <!-- Card Banner -->
             <div class="card card-custom p-4 p-md-5">
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <div class="stat-icon bg-primary text-white rounded-circle">
                         <i class="fa-solid fa-shield-halved"></i>
                     </div>
                     <div>
-                        <h4 class="fw-bold text-dark mb-0">Selamat Datang di Si Pelang</h4>
-                        <span class="text-muted small">Sistem Catatan & Poin Pelanggaran Kedisiplinan Siswa</span>
+                        <h4 class="fw-bold text-dark mb-0">Aplikasi Si Pelang</h4>
+                        <span class="text-muted small">Sistem Rekapitulasi & Kedisiplinan Siswa</span>
                     </div>
                 </div>
                 <p class="text-secondary leading-relaxed mb-4">
-                    Aplikasi ini dirancang untuk mencatat dan memantau poin kedisiplinan siswa secara cepat dan terintegrasi. Silakan pilih menu navasi di sebelah kiri untuk mulai mengelola data siswa atau melakukan pencatatan pelanggaran.
+                    Sistem ini dirancang untuk mempermudah pemantauan, pencatatan, dan pelaporan tingkat kedisiplinan siswa secara real-time.
                 </p>
                 <div class="d-flex gap-2">
                     <a href="kelola_siswa.php" class="btn btn-primary fw-medium px-4" style="border-radius: 8px; background-color: #2563eb;">
