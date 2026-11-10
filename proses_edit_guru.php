@@ -1,9 +1,15 @@
-
+```php
 <?php
 // proses_edit_guru.php
 
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
+
+// Hanya admin yang boleh mengedit guru
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header("Location: dashboard.php");
+    exit;
+}
 
 // Pastikan request menggunakan POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -92,7 +98,7 @@ try {
         throw new Exception("Data guru tidak ditemukan.");
     }
 
-    $user_id = $guru['user_id'];
+    $user_id = (int) $guru['user_id'];
 
     // Update data guru
     $sql = "UPDATE t_guru SET
@@ -109,6 +115,8 @@ try {
         throw new Exception(mysqli_error($koneksi));
     }
 
+    $status = (int) $status_aktif;
+
     mysqli_stmt_bind_param(
         $stmt,
         "ssssii",
@@ -116,7 +124,7 @@ try {
         $nama,
         $jenis_kelamin,
         $email,
-        $status_aktif,
+        $status,
         $id
     );
 
@@ -129,17 +137,23 @@ try {
     // Update password jika diisi
     if ($password !== '') {
 
-        if (empty($user_id)) {
+        if ($user_id <= 0) {
             throw new Exception(
                 "Guru belum memiliki akun pengguna."
             );
         }
 
+        // Mengubah password menjadi hash
         $password_hash = password_hash(
             $password,
             PASSWORD_DEFAULT
         );
 
+        if ($password_hash === false) {
+            throw new Exception("Gagal mengenkripsi password.");
+        }
+
+        // Update password pada akun pengguna
         $sql = "UPDATE t_users
                 SET password = ?
                 WHERE id = ?";
@@ -164,6 +178,8 @@ try {
         // Pastikan akun pengguna ditemukan
         if (mysqli_stmt_affected_rows($stmt) === 0) {
 
+            mysqli_stmt_close($stmt);
+
             $cek = mysqli_prepare(
                 $koneksi,
                 "SELECT id FROM t_users WHERE id = ?"
@@ -184,9 +200,10 @@ try {
             if (!$akun) {
                 throw new Exception("Akun pengguna tidak ditemukan.");
             }
-        }
 
-        mysqli_stmt_close($stmt);
+        } else {
+            mysqli_stmt_close($stmt);
+        }
     }
 
     // Simpan seluruh perubahan
@@ -200,12 +217,14 @@ try {
 
 } catch (Exception $e) {
 
+    // Batalkan perubahan jika terjadi kesalahan
     mysqli_rollback($koneksi);
 
-    $_SESSION['pesan_error'] = $e->getMessage();
-        "Data guru gagal diperbarui.";
+    $_SESSION['pesan_error'] =
+        "Data guru gagal diperbarui: " . $e->getMessage();
 
-    header("Location: kelola_guru.php?id=" . $id);
+    header("Location: edit_guru.php?id=" . $id);
     exit;
 }
 ?>
+```

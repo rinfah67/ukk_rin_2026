@@ -1,266 +1,393 @@
 
 <?php
-session_start();
+// kelola_catatan_pelanggaran.php
+
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Memeriksa apakah pengguna sudah login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
-    exit;
-}
-
-// Memeriksa hak akses
-$role = $_SESSION['role'] ?? '';
-
-if ($role != 'admin' && $role != 'guru') {
-    die("Akses ditolak.");
-}
-
 // Mengambil data catatan pelanggaran
-$query = mysqli_query($koneksi, "
+$query_catatan = mysqli_query($koneksi, "
     SELECT *
     FROM t_pelanggaran_siswa
     ORDER BY tanggal DESC, id DESC
 ");
 
-if (!$query) {
+if (!$query_catatan) {
     die("Query gagal: " . mysqli_error($koneksi));
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Catatan Pelanggaran - SI PELANG</title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-          rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-          rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- DataTables CSS -->
-    <link href="https://cdn.datatables.net/2.3.4/css/dataTables.bootstrap5.min.css"
-          rel="stylesheet">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .sidebar .nav-link {
+            color: #94a3b8;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+
+        .sidebar .nav-link.text-danger:hover {
+            background-color: #dc2626;
+            color: #ffffff !important;
+        }
+
+        /* Judul Halaman */
+        .page-title {
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        /* Card */
+        .card-custom {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+        }
+
+        /* Header Tabel */
+        .table-custom-header th {
+            background-color: #eff6ff;
+            color: #1e40af;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 14px 12px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        #tabelCatatan td {
+            padding: 12px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        /* Tombol Aksi */
+        .btn-action-edit {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: none;
+            border-radius: 7px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-action-edit:hover {
+            background-color: #fcd34d;
+            color: #78350f;
+        }
+
+        .btn-action-delete {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: none;
+            border-radius: 7px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-action-delete:hover {
+            background-color: #fecaca;
+            color: #991b1b;
+        }
+
+        /* DataTables */
+        .dataTables_wrapper {
+            font-size: 13px;
+        }
+
+        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            padding: 6px 10px;
+            outline: none;
+        }
+
+        .dataTables_wrapper .dataTables_filter input:focus,
+        .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 6px !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #2563eb !important;
+            color: white !important;
+            border: 1px solid #2563eb !important;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                align-items: flex-start !important;
+                gap: 15px;
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 
-<body class="bg-light">
+<body>
 
 <div class="container-fluid">
     <div class="row">
 
-        <?php include 'layout/sidebar.php'; ?>
+        <!-- Sidebar -->
+        <?php
+        $current_page = basename($_SERVER['PHP_SELF']);
+        include 'layout/sidebar.php';
+        ?>
 
-        <main class="col-md-9 col-lg-10 p-4">
+        <!-- Konten Utama -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
 
-            <!-- Judul halaman -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <!-- Header Halaman -->
+            <div class="d-flex justify-content-between align-items-center mb-4 page-header">
 
                 <div>
-                    <h3 class="fw-bold mb-1">
-                        <i class="bi bi-journal-text me-2"></i>
+                    <h3 class="page-title mb-1">
+                        <i class="fas fa-book-open text-primary me-2"></i>
                         Catatan Pelanggaran
                     </h3>
 
                     <p class="text-secondary mb-0">
-                        Daftar seluruh catatan pelanggaran siswa.
+                        Kelola seluruh catatan pelanggaran siswa di SI PELANG.
                     </p>
                 </div>
 
-                <a href="tambah_catatan.php" class="btn btn-primary">
-                    <i class="bi bi-plus-circle me-1"></i>
+                <a href="tambah_catatan.php" class="btn btn-primary px-3 fw-semibold">
+                    <i class="fas fa-plus me-1"></i>
                     Tambah Catatan
                 </a>
 
             </div>
 
-            <!-- Notifikasi error -->
-            <?php if (isset($_SESSION['pesan_error'])): ?>
+            <!-- Notifikasi Error -->
+            <?php if (isset($_SESSION['pesan_error'])) : ?>
 
                 <div class="alert alert-danger alert-dismissible fade show">
                     <?= htmlspecialchars($_SESSION['pesan_error']); ?>
 
-                    <button type="button" class="btn-close"
-                            data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
                 <?php unset($_SESSION['pesan_error']); ?>
 
             <?php endif; ?>
 
-            <!-- Notifikasi sukses -->
-            <?php if (isset($_SESSION['pesan_sukses'])): ?>
+            <!-- Notifikasi Sukses -->
+            <?php if (isset($_SESSION['pesan_sukses'])) : ?>
 
                 <div class="alert alert-success alert-dismissible fade show">
                     <?= htmlspecialchars($_SESSION['pesan_sukses']); ?>
 
-                    <button type="button" class="btn-close"
-                            data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
                 <?php unset($_SESSION['pesan_sukses']); ?>
 
             <?php endif; ?>
 
-            <!-- Notifikasi berdasarkan URL -->
-            <?php if (isset($_GET['pesan'])): ?>
+            <!-- Notifikasi URL -->
+            <?php if (isset($_GET['pesan'])) : ?>
 
-                <?php if ($_GET['pesan'] == 'tambah'): ?>
+                <?php if ($_GET['pesan'] == 'tambah') : ?>
 
                     <div class="alert alert-success alert-dismissible fade show">
                         Catatan pelanggaran berhasil ditambahkan.
-
-                        <button type="button" class="btn-close"
-                                data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
 
-                <?php elseif ($_GET['pesan'] == 'edit'): ?>
+                <?php elseif ($_GET['pesan'] == 'edit') : ?>
 
                     <div class="alert alert-success alert-dismissible fade show">
                         Catatan pelanggaran berhasil diperbarui.
-
-                        <button type="button" class="btn-close"
-                                data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
 
-                <?php elseif ($_GET['pesan'] == 'hapus'): ?>
+                <?php elseif ($_GET['pesan'] == 'hapus') : ?>
 
                     <div class="alert alert-success alert-dismissible fade show">
                         Catatan pelanggaran berhasil dihapus.
-
-                        <button type="button" class="btn-close"
-                                data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
 
                 <?php endif; ?>
 
             <?php endif; ?>
 
-            <!-- Tabel catatan pelanggaran -->
-            <div class="card border-0 shadow-sm">
+            <!-- Card Data Catatan -->
+            <div class="card card-custom p-4">
 
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-semibold">
-                        <i class="bi bi-table me-2"></i>
+                <div class="mb-3">
+                    <h5 class="fw-bold mb-1">
+                        <i class="fas fa-table text-primary me-2"></i>
                         Data Catatan Pelanggaran Siswa
                     </h5>
+
+                    <p class="text-secondary small mb-0">
+                        Cari, urutkan, edit, dan hapus catatan pelanggaran siswa.
+                    </p>
                 </div>
 
-                <div class="card-body">
+                <div class="table-responsive">
 
-                    <div class="table-responsive">
+                    <table id="tabelCatatan" class="table table-bordered table-hover align-middle w-100">
 
-                        <table id="tabelCatatan"
-                               class="table table-bordered table-striped table-hover align-middle text-nowrap w-100">
+                        <thead class="table-custom-header text-center">
+                            <tr>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Nama Siswa</th>
+                                <th>Kelas</th>
+                                <th>Pelanggaran</th>
+                                <th>Poin</th>
+                                <th>Guru</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
 
-                            <thead class="table-primary text-center">
-                                <tr>
-                                    <th>No.</th>
-                                    <th>Tanggal</th>
-                                    <th>Nama Siswa</th>
-                                    <th>Kelas</th>
-                                    <th>Pelanggaran</th>
-                                    <th>Poin</th>
-                                    <th>Guru</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
+                        <tbody>
 
-                            <tbody>
+                            <?php
+                            $no = 1;
 
-                                <?php
-                                $no = 1;
+                            if (mysqli_num_rows($query_catatan) > 0) :
+                                while ($data = mysqli_fetch_assoc($query_catatan)) :
 
-                                while ($data = mysqli_fetch_assoc($query)):
-                                ?>
+                                    $id_val = $data['id'] ?? 0;
+                                    $status = $data['status'] ?? '';
+                            ?>
 
-                                    <tr>
-                                        <td class="text-center">
-                                            <?= $no++; ?>
-                                        </td>
+                            <tr>
+                                <td class="text-center">
+                                    <?= $no++; ?>
+                                </td>
 
-                                        <td>
-                                            <?= htmlspecialchars($data['tanggal'] ?? '-'); ?>
-                                        </td>
+                                <td>
+                                    <?= htmlspecialchars($data['tanggal'] ?? '-'); ?>
+                                </td>
 
-                                        <td>
-                                            <?= htmlspecialchars($data['nama_siswa'] ?? '-'); ?>
-                                        </td>
+                                <td class="fw-semibold">
+                                    <?= htmlspecialchars($data['nama_siswa'] ?? '-'); ?>
+                                </td>
 
-                                        <td>
-                                            <?= htmlspecialchars($data['nama_kelas'] ?? '-'); ?>
-                                        </td>
+                                <td>
+                                    <?= htmlspecialchars($data['nama_kelas'] ?? '-'); ?>
+                                </td>
 
-                                        <td>
-                                            <?= htmlspecialchars($data['nama_pelanggaran'] ?? '-'); ?>
-                                        </td>
+                                <td>
+                                    <?= htmlspecialchars($data['nama_pelanggaran'] ?? '-'); ?>
+                                </td>
 
-                                        <td class="text-center">
-                                            <span class="badge bg-primary">
-                                                <?= htmlspecialchars($data['poin'] ?? '0'); ?>
-                                            </span>
-                                        </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">
+                                        <?= htmlspecialchars($data['poin'] ?? '0'); ?>
+                                    </span>
+                                </td>
 
-                                        <td>
-                                            <?= htmlspecialchars($data['nama_guru'] ?? '-'); ?>
-                                        </td>
+                                <td>
+                                    <?= htmlspecialchars($data['nama_guru'] ?? '-'); ?>
+                                </td>
 
-                                        <td class="text-center">
+                                <td class="text-center">
+                                    <?php if ($status == 'Belum diproses') : ?>
 
-                                            <?php
-                                            $status = $data['status'] ?? '';
+                                        <span class="badge bg-warning text-dark">
+                                            Belum diproses
+                                        </span>
 
-                                            if ($status == 'Belum diproses') {
-                                                echo '<span class="badge bg-warning text-dark">Belum diproses</span>';
-                                            } elseif ($status == 'Diproses') {
-                                                echo '<span class="badge bg-info text-dark">Diproses</span>';
-                                            } elseif ($status == 'Selesai') {
-                                                echo '<span class="badge bg-success">Selesai</span>';
-                                            } else {
-                                                echo '<span class="badge bg-secondary">' .
-                                                    htmlspecialchars($status ?: '-') .
-                                                    '</span>';
-                                            }
-                                            ?>
+                                    <?php elseif ($status == 'Diproses') : ?>
 
-                                        </td>
+                                        <span class="badge bg-info text-dark">
+                                            Diproses
+                                        </span>
 
-                                        <td class="text-center">
+                                    <?php elseif ($status == 'Selesai') : ?>
 
-                                            <div class="d-flex justify-content-center gap-1">
+                                        <span class="badge bg-success">
+                                            Selesai
+                                        </span>
 
-                                                <a href="edit_catatan.php?id=<?= (int)$data['id']; ?>"
-                                                   class="btn btn-warning btn-sm"
-                                                   title="Edit">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
+                                    <?php else : ?>
 
-                                                <a href="hapus_catatan.php?id=<?= (int)$data['id']; ?>"
-                                                   class="btn btn-danger btn-sm"
-                                                   title="Hapus"
-                                                   onclick="return confirm('Yakin ingin menghapus catatan ini?')">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
+                                        <span class="badge bg-secondary">
+                                            <?= htmlspecialchars($status ?: '-'); ?>
+                                        </span>
 
-                                            </div>
+                                    <?php endif; ?>
+                                </td>
 
-                                        </td>
-                                    </tr>
+                                <td class="text-center text-nowrap">
 
-                                <?php endwhile; ?>
+                                    <a href="edit_catatan.php?id=<?= (int) $id_val; ?>"
+                                       class="btn btn-action-edit">
+                                        <i class="fas fa-pen-to-square"></i>
+                                        Edit
+                                    </a>
 
-                            </tbody>
+                                    <a href="hapus_catatan.php?id=<?= (int) $id_val; ?>"
+                                       class="btn btn-action-delete"
+                                       onclick="return confirm('Yakin ingin menghapus catatan pelanggaran ini?')">
+                                        <i class="fas fa-trash"></i>
+                                        Hapus
+                                    </a>
 
-                        </table>
+                                </td>
+                            </tr>
 
-                    </div>
+                            <?php
+                                endwhile;
+                            endif;
+                            ?>
+
+                        </tbody>
+
+                    </table>
 
                 </div>
             </div>
@@ -270,65 +397,40 @@ if (!$query) {
     </div>
 </div>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- JavaScript -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Bootstrap JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-<!-- DataTables JavaScript -->
-<script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/2.3.4/js/dataTables.bootstrap5.min.js"></script>
-
-<!-- Mengaktifkan DataTables -->
 <script>
-$(document).ready(function () {
+    $(document).ready(function () {
 
-    $('#tabelCatatan').DataTable({
+        // Mengaktifkan DataTables
+        $('#tabelCatatan').DataTable({
+            pageLength: 10,
 
-        // Jumlah data per halaman
-        pageLength: 10,
+            lengthMenu: [5, 10, 25, 50, 100],
 
-        // Pilihan jumlah data
-        lengthMenu: [5, 10, 25, 50, 100],
-
-        // Tidak mengurutkan otomatis
-        order: [],
-
-        // Mengaktifkan fitur DataTables
-        searching: true,
-        ordering: true,
-        paging: true,
-        info: true,
-
-        // Bahasa Indonesia
-        language: {
-            search: "Cari:",
-            searchPlaceholder: "Cari catatan pelanggaran...",
-
-            lengthMenu: "Tampilkan _MENU_ data",
-
-            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-
-            infoEmpty: "Belum ada data",
-
-            infoFiltered: "(disaring dari _MAX_ total data)",
-
-            zeroRecords: "Data tidak ditemukan",
-
-            emptyTable: "Belum ada catatan pelanggaran",
-
-            paginate: {
-                first: "Pertama",
-                last: "Terakhir",
-                next: "Selanjutnya",
-                previous: "Sebelumnya"
+            language: {
+                lengthMenu: "Tampilkan _MENU_ data per halaman",
+                zeroRecords: "Data catatan pelanggaran tidak ditemukan",
+                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                infoEmpty: "Tidak ada data tersedia",
+                infoFiltered: "(difilter dari _MAX_ total data)",
+                search: "Cari:",
+                paginate: {
+                    first: "Pertama",
+                    last: "Terakhir",
+                    next: "Selanjutnya",
+                    previous: "Sebelumnya"
+                }
             }
-        }
+        });
 
     });
-
-});
 </script>
 
 </body>

@@ -116,7 +116,7 @@ $tahun = mysqli_query($koneksi, "SELECT id, nama FROM t_tahun_ajaran ORDER BY na
     <br><br>
 
     <button type="submit">Simpan Perubahan</button>
-    <a href="kelola_walikelas.php">Kembali</a>
+    <a href="kelola_wali_kelas.php">Kembali</a>
 
 </form>
 

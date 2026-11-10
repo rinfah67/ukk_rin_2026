@@ -1,13 +1,18 @@
-
+```php
 <?php
+// edit_guru.php
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
+
+// Hanya admin yang boleh mengakses
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header("Location: dashboard.php");
+    exit;
+}
 
 // Ambil ID dari URL
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -28,36 +33,43 @@ mysqli_stmt_execute($stmt);
 $query = mysqli_stmt_get_result($stmt);
 
 if (!$query || mysqli_num_rows($query) == 0) {
-    echo "<script>alert('Data guru tidak ditemukan!'); window.location='kelola_guru.php';</script>";
+    header("Location: kelola_guru.php");
     exit;
 }
 
 $data = mysqli_fetch_assoc($query);
-$id_guru_val = $data['id'];
+mysqli_stmt_close($stmt);
 
-function e($nilai) {
+// Fungsi mengamankan output
+function e($nilai)
+{
     return htmlspecialchars(
-        (string)($nilai ?? ''),
+        (string) ($nilai ?? ''),
         ENT_QUOTES,
         'UTF-8'
     );
 }
+
+// Mengambil jenis kelamin
+$jk = $data['jenis_kelamin'] ?? '';
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Guru - Pelanggaran Siswa</title>
+
+    <title>Edit Guru - SI PELANG</title>
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap 5 CSS -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- FontAwesome Icons -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -115,27 +127,30 @@ function e($nilai) {
         }
     </style>
 </head>
+
 <body>
 
 <div class="container-fluid">
     <div class="row">
 
-        <!-- Sidebar Navigation -->
+        <!-- Sidebar -->
         <?php include 'layout/sidebar.php'; ?>
 
-        <!-- Main Content Area -->
+        <!-- Konten Utama -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
 
             <div class="row justify-content-center">
                 <div class="col-xl-9 col-lg-10">
 
-                    <!-- Header Judul -->
+                    <!-- Header -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
+
                         <div>
                             <h2 class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
                                 <i class="fa-solid fa-pen-to-square text-warning"></i>
                                 Edit Data Guru
                             </h2>
+
                             <p class="text-muted mb-0">
                                 Ubah formulir di bawah ini untuk memperbarui data guru.
                             </p>
@@ -144,21 +159,37 @@ function e($nilai) {
                         <a href="kelola_guru.php"
                            class="btn btn-white text-secondary border fw-medium px-3 shadow-sm"
                            style="border-radius: 10px;">
-                            <i class="fa-solid fa-arrow-left me-1"></i> Kembali
+
+                            <i class="fa-solid fa-arrow-left me-1"></i>
+                            Kembali
+
                         </a>
+
                     </div>
 
-                    <!-- Card Form Edit -->
+                    <!-- Pesan Error -->
+                    <?php if (!empty($_SESSION['pesan_error'])) : ?>
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            <?= e($_SESSION['pesan_error']); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <?php unset($_SESSION['pesan_error']); ?>
+                    <?php endif; ?>
+
+                    <!-- Card Form -->
                     <div class="card card-custom p-4 p-md-5">
 
                         <form action="proses_edit_guru.php" method="POST">
 
-                            <input type="hidden" name="id" value="<?php echo e($id_guru_val); ?>">
+                            <input type="hidden"
+                                   name="id"
+                                   value="<?= (int) $data['id']; ?>">
 
                             <div class="row g-4">
 
-                                <!-- 1. NIP -->
+                                <!-- NIP -->
                                 <div class="col-md-6">
+
                                     <label for="nip" class="form-label">
                                         NIP <span class="text-danger">*</span>
                                     </label>
@@ -169,23 +200,24 @@ function e($nilai) {
                                         id="nip"
                                         name="nip"
                                         maxlength="18"
-                                        value="<?php echo e($data['nip'] ?? ''); ?>"
-                                        oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+                                        inputmode="numeric"
+                                        value="<?= e($data['nip']); ?>"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,18);"
                                         required
                                     >
 
                                     <div class="form-text">
                                         Maksimal 18 digit angka.
                                     </div>
+
                                 </div>
 
-                                <!-- 2. Jenis Kelamin -->
+                                <!-- Jenis Kelamin -->
                                 <div class="col-md-6">
+
                                     <label for="jenis_kelamin" class="form-label">
                                         Jenis Kelamin <span class="text-danger">*</span>
                                     </label>
-
-                                    <?php $jk = $data['jenis_kelamin'] ?? ''; ?>
 
                                     <select
                                         class="form-select"
@@ -193,18 +225,24 @@ function e($nilai) {
                                         name="jenis_kelamin"
                                         required
                                     >
-                                        <option value="Laki-laki" <?php echo ($jk == 'Laki-laki') ? 'selected' : ''; ?>>
+
+                                        <option value="Laki-laki"
+                                            <?= $jk == 'Laki-laki' ? 'selected' : ''; ?>>
                                             Laki-laki
                                         </option>
 
-                                        <option value="Perempuan" <?php echo ($jk == 'Perempuan') ? 'selected' : ''; ?>>
+                                        <option value="Perempuan"
+                                            <?= $jk == 'Perempuan' ? 'selected' : ''; ?>>
                                             Perempuan
                                         </option>
+
                                     </select>
+
                                 </div>
 
-                                <!-- 3. Nama Guru -->
+                                <!-- Nama Guru -->
                                 <div class="col-12">
+
                                     <label for="nama" class="form-label">
                                         Nama Lengkap & Gelar <span class="text-danger">*</span>
                                     </label>
@@ -215,21 +253,17 @@ function e($nilai) {
                                         id="nama"
                                         name="nama"
                                         maxlength="100"
-                                        value="<?php
-                                            echo e(
-                                                $data['nama']
-                                                ?? $data['nama_guru']
-                                                ?? ''
-                                            );
-                                        ?>"
+                                        value="<?= e($data['nama'] ?? $data['nama_guru'] ?? ''); ?>"
                                         required
                                     >
+
                                 </div>
 
-                                <!-- 4. Email -->
+                                <!-- Email -->
                                 <div class="col-md-6">
+
                                     <label for="email" class="form-label">
-                                        Email
+                                        Email <span class="text-danger">*</span>
                                     </label>
 
                                     <input
@@ -237,12 +271,15 @@ function e($nilai) {
                                         class="form-control"
                                         id="email"
                                         name="email"
-                                        value="<?php echo e($data['email'] ?? ''); ?>"
+                                        value="<?= e($data['email'] ?? ''); ?>"
+                                        required
                                     >
+
                                 </div>
 
-                                <!-- 5. Status (Paling Akhir) -->
+                                <!-- Status -->
                                 <div class="col-md-6">
+
                                     <label for="status_aktif" class="form-label">
                                         Status <span class="text-danger">*</span>
                                     </label>
@@ -253,21 +290,66 @@ function e($nilai) {
                                         name="status_aktif"
                                         required
                                     >
+
                                         <option value="1"
-                                            <?php echo ((string)($data['status_aktif'] ?? '') === '1') ? 'selected' : ''; ?>>
+                                            <?= ((string) $data['status_aktif'] === '1') ? 'selected' : ''; ?>>
                                             Aktif
                                         </option>
 
                                         <option value="0"
-                                            <?php echo ((string)($data['status_aktif'] ?? '') === '0') ? 'selected' : ''; ?>>
+                                            <?= ((string) $data['status_aktif'] === '0') ? 'selected' : ''; ?>>
                                             Tidak Aktif
                                         </option>
+
                                     </select>
+
+                                </div>
+
+                                <!-- Password Baru -->
+                                <div class="col-md-6">
+
+                                    <label for="password" class="form-label">
+                                        Password Baru
+                                    </label>
+
+                                    <input
+                                        type="password"
+                                        class="form-control"
+                                        id="password"
+                                        name="password"
+                                        minlength="8"
+                                        autocomplete="new-password"
+                                        placeholder="Kosongkan jika tidak diganti"
+                                    >
+
+                                    <div class="form-text">
+                                        Minimal 8 karakter. Kosongkan jika tidak ingin mengganti password.
+                                    </div>
+
+                                </div>
+
+                                <!-- Konfirmasi Password -->
+                                <div class="col-md-6">
+
+                                    <label for="konfirmasi_password" class="form-label">
+                                        Konfirmasi Password
+                                    </label>
+
+                                    <input
+                                        type="password"
+                                        class="form-control"
+                                        id="konfirmasi_password"
+                                        name="konfirmasi_password"
+                                        minlength="8"
+                                        autocomplete="new-password"
+                                        placeholder="Ulangi password baru"
+                                    >
+
                                 </div>
 
                             </div>
 
-                            <!-- Tombol Update & Batal -->
+                            <!-- Tombol -->
                             <div class="d-flex justify-content-end align-items-center gap-3 mt-4 pt-3 border-top">
 
                                 <a href="kelola_guru.php"
@@ -289,16 +371,20 @@ function e($nilai) {
                             </div>
 
                         </form>
+
                     </div>
 
                 </div>
             </div>
 
         </main>
+
     </div>
 </div>
 
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
+```

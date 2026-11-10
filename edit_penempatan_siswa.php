@@ -43,10 +43,6 @@ $stmt = mysqli_prepare($koneksi, "
     LIMIT 1
 ");
 
-if (!$stmt) {
-    die("Gagal menyiapkan query: " . mysqli_error($koneksi));
-}
-
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
 
@@ -129,7 +125,6 @@ $kelas = mysqli_stmt_get_result($stmt_kelas);
 
 // Menyesuaikan tanggal untuk input date
 $tanggal_mulai = $data['tanggal_mulai'] ?? '';
-
 $tanggal_selesai = $data['tanggal_selesai'] ?? '';
 
 if (
@@ -142,144 +137,84 @@ if (
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Edit Penempatan Siswa | SI PELANG</title>
+    <title>Edit Penempatan Siswa - SI PELANG</title>
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-          rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Google Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-          rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body {
-            background-color: #f1f5f9;
             font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
             color: #334155;
         }
 
-        .page-title {
-            color: #1e293b;
-            font-weight: 700;
+        /* Styling Sidebar */
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
         }
 
-        .page-description {
-            color: #64748b;
-            font-size: 13px;
+        .sidebar .nav-link {
+            color: #94a3b8;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
 
-        .page-icon {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            background-color: #dbeafe;
-            color: #2563eb;
-            font-size: 22px;
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: #ffffff;
+            background-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
 
+        .sidebar .nav-link.text-danger:hover {
+            background-color: #ef4444;
+            color: #fff !important;
+        }
+
+        /* Card Form */
         .card-custom {
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        }
-
-        .card-header-custom {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 20px 24px;
-            border-radius: 16px 16px 0 0 !important;
-        }
-
-        .card-body-custom {
-            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05),
+                        0 8px 10px -6px rgba(0, 0, 0, 0.01);
         }
 
         .form-label {
-            color: #475569;
-            font-size: 13px;
             font-weight: 600;
-            margin-bottom: 8px;
+            color: #475569;
+            font-size: 0.875rem;
+            margin-bottom: 6px;
         }
 
         .form-control,
         .form-select {
-            border: 1px solid #cbd5e1;
             border-radius: 8px;
             padding: 10px 14px;
-            font-size: 13px;
-            color: #334155;
+            border: 1px solid #cbd5e1;
+            font-size: 0.95rem;
         }
 
         .form-control:focus,
         .form-select:focus {
             border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .form-control::placeholder {
-            color: #94a3b8;
-        }
-
-        .form-text {
-            color: #94a3b8;
-            font-size: 11px;
-        }
-
-        .btn {
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .btn-primary {
-            background-color: #2563eb;
-            border-color: #2563eb;
-        }
-
-        .btn-primary:hover {
-            background-color: #1d4ed8;
-            border-color: #1d4ed8;
-        }
-
-        .btn-outline-secondary {
-            border-color: #cbd5e1;
-            color: #475569;
-        }
-
-        .btn-outline-secondary:hover {
-            background-color: #e2e8f0;
-            border-color: #cbd5e1;
-            color: #1e293b;
-        }
-
-        .form-footer {
-            border-top: 1px solid #e2e8f0;
-            padding-top: 20px;
-            margin-top: 10px;
-        }
-
-        @media (max-width: 768px) {
-            main {
-                padding: 20px !important;
-            }
-
-            .card-body-custom {
-                padding: 18px;
-            }
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
     </style>
 </head>
@@ -289,272 +224,246 @@ if (
 <div class="container-fluid">
     <div class="row">
 
+        <!-- Sidebar -->
         <?php include 'layout/sidebar.php'; ?>
 
+        <!-- Konten Utama -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
 
-            <!-- Header halaman -->
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-
-                <div class="d-flex align-items-center gap-3">
-
-                    <div class="page-icon">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </div>
-
-                    <div>
-                        <h3 class="page-title mb-1">
-                            Edit Penempatan Siswa
-                        </h3>
-
-                        <p class="page-description mb-0">
-                            Ubah informasi penempatan siswa.
-                        </p>
-                    </div>
-
-                </div>
-
-                <a href="penempatan_siswa.php"
-                   class="btn btn-outline-secondary">
-                    <i class="fa-solid fa-arrow-left me-1"></i>
-                    Kembali
-                </a>
-
-            </div>
-
-            <!-- Card form -->
-            <div class="card card-custom">
-
-                <div class="card-header-custom">
-
-                    <h5 class="fw-bold mb-1">
-                        <i class="fa-solid fa-file-pen text-primary me-2"></i>
-                        Form Edit Penempatan
-                    </h5>
-
-                    <p class="page-description mb-0">
-                        Silakan ubah data penempatan siswa sesuai kebutuhan.
-                    </p>
-
-                </div>
-
-                <div class="card-body-custom">
-
-                    <form action="proses_edit_penempatan.php"
-                          method="POST">
-
-                        <input type="hidden"
-                               name="id"
-                               value="<?= (int) $data['id']; ?>">
-
-                        <input type="hidden"
-                               name="csrf_token"
-                               value="<?= e($_SESSION['csrf_token']); ?>">
-
-                        <div class="row">
-
-                            <!-- Siswa -->
-                            <div class="col-md-6 mb-3">
-
-                                <label class="form-label">
-                                    Siswa <span class="text-danger">*</span>
-                                </label>
-
-                                <select name="siswa_id"
-                                        class="form-select"
-                                        required>
-
-                                    <option value="">
-                                        -- Pilih Siswa --
-                                    </option>
-
-                                    <?php while ($row = mysqli_fetch_assoc($siswa)): ?>
-
-                                        <option
-                                            value="<?= (int) $row['id']; ?>"
-                                            <?= (int) $row['id'] === (int) $data['siswa_id'] ? 'selected' : ''; ?>>
-
-                                            <?= e($row['nis']); ?> -
-                                            <?= e($row['nama']); ?>
-
-                                        </option>
-
-                                    <?php endwhile; ?>
-
-                                </select>
-
-                                <div class="form-text">
-                                    Pilih siswa yang akan ditempatkan.
-                                </div>
-
-                            </div>
-
-                            <!-- Tahun Ajaran -->
-                            <div class="col-md-6 mb-3">
-
-                                <label class="form-label">
-                                    Tahun Ajaran <span class="text-danger">*</span>
-                                </label>
-
-                                <select name="tahun_ajaran_id"
-                                        class="form-select"
-                                        required>
-
-                                    <option value="">
-                                        -- Pilih Tahun Ajaran --
-                                    </option>
-
-                                    <?php while ($row = mysqli_fetch_assoc($tahun)): ?>
-
-                                        <option
-                                            value="<?= (int) $row['id']; ?>"
-                                            <?= (int) $row['id'] === (int) $data['tahun_ajaran_id'] ? 'selected' : ''; ?>>
-
-                                            <?= e($row['nama']); ?>
-
-                                        </option>
-
-                                    <?php endwhile; ?>
-
-                                </select>
-
-                                <div class="form-text">
-                                    Pilih tahun ajaran penempatan siswa.
-                                </div>
-
-                            </div>
-
-                            <!-- Kelas -->
-                            <div class="col-md-6 mb-3">
-
-                                <label class="form-label">
-                                    Kelas <span class="text-danger">*</span>
-                                </label>
-
-                                <select name="kelas_id"
-                                        class="form-select"
-                                        required>
-
-                                    <option value="">
-                                        -- Pilih Kelas --
-                                    </option>
-
-                                    <?php while ($row = mysqli_fetch_assoc($kelas)): ?>
-
-                                        <option
-                                            value="<?= (int) $row['id']; ?>"
-                                            <?= (int) $row['id'] === (int) $data['kelas_id'] ? 'selected' : ''; ?>>
-
-                                            <?= e($row['nama']); ?>
-
-                                        </option>
-
-                                    <?php endwhile; ?>
-
-                                </select>
-
-                                <div class="form-text">
-                                    Pilih kelas untuk siswa.
-                                </div>
-
-                            </div>
-
-                            <!-- Tanggal Mulai -->
-                            <div class="col-md-6 mb-3">
-
-                                <label class="form-label">
-                                    Tanggal Mulai <span class="text-danger">*</span>
-                                </label>
-
-                                <input
-                                    type="date"
-                                    name="tanggal_mulai"
-                                    class="form-control"
-                                    value="<?= e($tanggal_mulai); ?>"
-                                    required
-                                >
-
-                                <div class="form-text">
-                                    Tanggal mulai penempatan siswa.
-                                </div>
-
-                            </div>
-
-                            <!-- Tanggal Selesai -->
-                            <div class="col-md-6 mb-3">
-
-                                <label class="form-label">
-                                    Tanggal Selesai
-                                </label>
-
-                                <input
-                                    type="date"
-                                    name="tanggal_selesai"
-                                    class="form-control"
-                                    value="<?= e($tanggal_selesai); ?>"
-                                >
-
-                                <div class="form-text">
-                                    Kosongkan jika penempatan masih berlangsung.
-                                </div>
-
-                            </div>
-
-                            <!-- Status -->
-                            <div class="col-md-6 mb-3">
-
-                                <label class="form-label">
-                                    Status <span class="text-danger">*</span>
-                                </label>
-
-                                <select name="status_aktif"
-                                        class="form-select"
-                                        required>
-
-                                    <option value="1"
-                                        <?= (int) $data['status_aktif'] === 1 ? 'selected' : ''; ?>>
-                                        Aktif
-                                    </option>
-
-                                    <option value="0"
-                                        <?= (int) $data['status_aktif'] === 0 ? 'selected' : ''; ?>>
-                                        Tidak Aktif
-                                    </option>
-
-                                </select>
-
-                                <div class="form-text">
-                                    Tentukan status penempatan siswa.
-                                </div>
-
-                            </div>
-
+            <div class="row justify-content-center">
+                <div class="col-xl-9 col-lg-10">
+
+                    <!-- Header Judul -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+
+                        <div>
+                            <h2 class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
+                                <i class="fa-solid fa-pen-to-square text-warning"></i>
+                                Edit Data Penempatan Siswa
+                            </h2>
+
+                            <p class="text-muted mb-0">
+                                Ubah formulir di bawah ini untuk memperbarui data penempatan siswa.
+                            </p>
                         </div>
 
-                        <!-- Tombol -->
-                        <div class="form-footer d-flex flex-wrap gap-2">
+                        <a href="penempatan_siswa.php"
+                           class="btn btn-white text-secondary border fw-medium px-3 shadow-sm"
+                           style="border-radius: 10px;">
 
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa-solid fa-floppy-disk me-1"></i>
-                                Simpan Perubahan
-                            </button>
+                            <i class="fa-solid fa-arrow-left me-1"></i>
+                            Kembali
 
-                            <a href="penempatan_siswa.php"
-                               class="btn btn-outline-secondary">
-                                <i class="fa-solid fa-xmark me-1"></i>
-                                Batal
-                            </a>
+                        </a>
 
-                        </div>
+                    </div>
 
-                    </form>
+                    <!-- Card Form -->
+                    <div class="card card-custom p-4 p-md-5">
+
+                        <form action="proses_edit_penempatan.php" method="POST">
+
+                            <!-- ID Penempatan -->
+                            <input type="hidden"
+                                   name="id"
+                                   value="<?= (int) $data['id']; ?>">
+
+                            <!-- Token Keamanan -->
+                            <input type="hidden"
+                                   name="csrf_token"
+                                   value="<?= e($_SESSION['csrf_token']); ?>">
+
+                            <div class="row g-4">
+
+                                <!-- Siswa -->
+                                <div class="col-md-6">
+
+                                    <label for="siswa_id" class="form-label">
+                                        Siswa <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select class="form-select"
+                                            id="siswa_id"
+                                            name="siswa_id"
+                                            required>
+
+                                        <option value="">
+                                            -- Pilih Siswa --
+                                        </option>
+
+                                        <?php while ($row = mysqli_fetch_assoc($siswa)) : ?>
+
+                                            <option
+                                                value="<?= (int) $row['id']; ?>"
+                                                <?= (int) $row['id'] === (int) $data['siswa_id'] ? 'selected' : ''; ?>>
+
+                                                <?= e($row['nis']); ?> -
+                                                <?= e($row['nama']); ?>
+
+                                            </option>
+
+                                        <?php endwhile; ?>
+
+                                    </select>
+
+                                </div>
+
+                                <!-- Tahun Ajaran -->
+                                <div class="col-md-6">
+
+                                    <label for="tahun_ajaran_id" class="form-label">
+                                        Tahun Ajaran <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select class="form-select"
+                                            id="tahun_ajaran_id"
+                                            name="tahun_ajaran_id"
+                                            required>
+
+                                        <option value="">
+                                            -- Pilih Tahun Ajaran --
+                                        </option>
+
+                                        <?php while ($row = mysqli_fetch_assoc($tahun)) : ?>
+
+                                            <option
+                                                value="<?= (int) $row['id']; ?>"
+                                                <?= (int) $row['id'] === (int) $data['tahun_ajaran_id'] ? 'selected' : ''; ?>>
+
+                                                <?= e($row['nama']); ?>
+
+                                            </option>
+
+                                        <?php endwhile; ?>
+
+                                    </select>
+
+                                </div>
+
+                                <!-- Kelas -->
+                                <div class="col-md-6">
+
+                                    <label for="kelas_id" class="form-label">
+                                        Kelas <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select class="form-select"
+                                            id="kelas_id"
+                                            name="kelas_id"
+                                            required>
+
+                                        <option value="">
+                                            -- Pilih Kelas --
+                                        </option>
+
+                                        <?php while ($row = mysqli_fetch_assoc($kelas)) : ?>
+
+                                            <option
+                                                value="<?= (int) $row['id']; ?>"
+                                                <?= (int) $row['id'] === (int) $data['kelas_id'] ? 'selected' : ''; ?>>
+
+                                                <?= e($row['nama']); ?>
+
+                                            </option>
+
+                                        <?php endwhile; ?>
+
+                                    </select>
+
+                                </div>
+
+                                <!-- Tanggal Mulai -->
+                                <div class="col-md-6">
+
+                                    <label for="tanggal_mulai" class="form-label">
+                                        Tanggal Mulai <span class="text-danger">*</span>
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        id="tanggal_mulai"
+                                        name="tanggal_mulai"
+                                        value="<?= e($tanggal_mulai); ?>"
+                                        required
+                                    >
+
+                                </div>
+
+                                <!-- Tanggal Selesai -->
+                                <div class="col-md-6">
+
+                                    <label for="tanggal_selesai" class="form-label">
+                                        Tanggal Selesai <span class="text-danger">*</span>
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        id="tanggal_selesai"
+                                        name="tanggal_selesai"
+                                        value="<?= e($tanggal_selesai); ?>"
+                                        required
+                                    >
+
+                                </div>
+
+                                <!-- Status -->
+                                <div class="col-md-6">
+
+                                    <label for="status_aktif" class="form-label">
+                                        Status <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select class="form-select"
+                                            id="status_aktif"
+                                            name="status_aktif"
+                                            required>
+
+                                        <option value="1"
+                                            <?= (int) $data['status_aktif'] === 1 ? 'selected' : ''; ?>>
+                                            Aktif
+                                        </option>
+
+                                        <option value="0"
+                                            <?= (int) $data['status_aktif'] === 0 ? 'selected' : ''; ?>>
+                                            Tidak Aktif
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
+
+                            <!-- Tombol Update dan Batal -->
+                            <div class="d-flex justify-content-end align-items-center gap-3 mt-4 pt-3 border-top">
+
+                                <a href="penempatan_siswa.php"
+                                   class="btn btn-outline-secondary px-4 fw-medium"
+                                   style="border-radius: 8px;">
+
+                                    Batal
+
+                                </a>
+
+                                <button type="submit"
+                                        name="update"
+                                        class="btn btn-warning px-4 fw-medium shadow-sm text-dark"
+                                        style="border-radius: 8px;">
+
+                                    <i class="fa-solid fa-pen-to-square me-1"></i>
+                                    Update Data
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
 
                 </div>
-
-            </div>
-
-            <div class="text-secondary small mt-4">
-                SI PELANG &copy; <?= date('Y'); ?>
             </div>
 
         </main>
