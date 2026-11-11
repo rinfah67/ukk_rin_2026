@@ -1,41 +1,41 @@
 
 <?php
-session_start();
+// about_me.php
+
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Cek apakah pengguna sudah login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+// =====================================
+// MENGAMBIL DATA PENGGUNA
+// =====================================
+$nama = 'Muhamad Fahrin Adam';
 
-// Mengambil data pengguna
-$nama = $_SESSION['name'] ?? 'Muhamad Fahrin Adam';
-$role = $_SESSION['role'] ?? 'guru';
-
-// Menentukan halaman aktif
+// =====================================
+// HALAMAN AKTIF SIDEBAR
+// =====================================
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>About Me - SI PELANG</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
     <style>
         body {
-            font-family: 'Inter', sans-serif;
             background-color: #f1f5f9;
             color: #334155;
         }
@@ -77,17 +77,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         /* Profile */
         .profile-card {
-            background: white;
-            border-radius: 20px;
+            background: #ffffff;
+            border-radius: 16px;
             overflow: hidden;
             border: none;
-            box-shadow: 0 5px 20px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 5px 20px rgba(15, 23, 42, 0.05);
         }
 
         .profile-cover {
             height: 190px;
             background: linear-gradient(120deg, #1d4ed8, #2563eb, #60a5fa);
             position: relative;
+            overflow: hidden;
         }
 
         .profile-cover::before {
@@ -121,8 +122,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
             width: 115px;
             height: 115px;
             border-radius: 50%;
-            background: white;
-            border: 6px solid white;
+            background: #ffffff;
+            border: 6px solid #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -162,11 +163,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
             max-width: 650px;
         }
 
-        /* Informasi */
+        /* Informasi Diri */
         .info-card {
-            background: white;
+            background: #ffffff;
             border: none;
-            border-radius: 16px;
+            border-radius: 12px;
             padding: 22px;
             height: 100%;
             box-shadow: 0 5px 20px rgba(15, 23, 42, 0.05);
@@ -225,8 +226,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         /* Hobi */
         .hobby-card {
-            background: white;
-            border-radius: 18px;
+            background: #ffffff;
+            border-radius: 12px;
             padding: 25px;
             border: none;
             box-shadow: 0 5px 20px rgba(15, 23, 42, 0.05);
@@ -258,6 +259,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             align-items: center;
             justify-content: center;
             font-size: 21px;
+            flex-shrink: 0;
         }
 
         .hobby-item h6 {
@@ -303,23 +305,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <body>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-        <!-- Sidebar -->
-        <?php include 'layout/sidebar.php'; ?>
+        <!-- SIDEBAR -->
+        <?php
+        $current_page = basename($_SERVER['PHP_SELF']);
+        include 'layout/sidebar.php';
+        ?>
 
-        <!-- Konten -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <!-- KONTEN -->
+        <main class="col px-md-4 py-4">
 
-            <!-- Header -->
+            <!-- HEADER -->
             <div class="page-header">
-                <h3><i class="fas fa-user-circle me-2 text-primary"></i>About Me</h3>
-                <p class="text-secondary mb-0">
+
+                <h3>
+                    <i class="fas fa-user-circle me-2 text-primary"></i>
+                    About Me
+                </h3>
+
+                <p class="text-muted mb-0">
                     Kenali lebih dekat tentang diri saya.
                 </p>
+
             </div>
 
-            <!-- Profile Card -->
+            <!-- PROFILE CARD -->
             <div class="profile-card mb-4">
 
                 <div class="profile-cover"></div>
@@ -331,12 +342,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </div>
 
                     <h4 class="profile-name">
-                        <?= htmlspecialchars($nama); ?>
+                        <?= htmlspecialchars($nama, ENT_QUOTES, 'UTF-8'); ?>
                     </h4>
-
-                    <span class="profile-role">
-                        <?= htmlspecialchars($role); ?>
-                    </span>
 
                     <p class="profile-description">
                         Halo! Perkenalkan, saya merupakan seorang pelajar
@@ -346,106 +353,175 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </p>
 
                 </div>
+
             </div>
 
-            <!-- Informasi Diri -->
+            <!-- INFORMASI DIRI -->
             <h5 class="section-title">
+
                 <i class="fas fa-id-card me-2 text-primary"></i>
                 Informasi Diri
+
             </h5>
 
             <div class="row g-3 mb-4">
 
+                <!-- STATUS -->
                 <div class="col-md-6 col-xl-3">
+
                     <div class="info-card">
+
                         <div class="info-icon icon-blue">
                             <i class="fas fa-user-graduate"></i>
                         </div>
-                        <div class="info-title">Status</div>
-                        <p class="info-value">Pelajar</p>
+
+                        <div class="info-title">
+                            Status
+                        </div>
+
+                        <p class="info-value">
+                            Pelajar
+                        </p>
+
                     </div>
+
                 </div>
 
+                <!-- SEKOLAH -->
                 <div class="col-md-6 col-xl-3">
+
                     <div class="info-card">
+
                         <div class="info-icon icon-purple">
                             <i class="fas fa-school"></i>
                         </div>
-                        <div class="info-title">Sekolah</div>
-                        <p class="info-value">SMK Muhammadiyah</p>
+
+                        <div class="info-title">
+                            Sekolah
+                        </div>
+
+                        <p class="info-value">
+                            SMK Muhammadiyah
+                        </p>
+
                     </div>
+
                 </div>
 
+                <!-- UMUR -->
                 <div class="col-md-6 col-xl-3">
+
                     <div class="info-card">
+
                         <div class="info-icon icon-orange">
                             <i class="fas fa-calendar-alt"></i>
                         </div>
-                        <div class="info-title">Umur</div>
-                        <p class="info-value">17 Tahun</p>
+
+                        <div class="info-title">
+                            Umur
+                        </div>
+
+                        <p class="info-value">
+                            17 Tahun
+                        </p>
+
                     </div>
+
                 </div>
 
+                <!-- KOTA -->
                 <div class="col-md-6 col-xl-3">
+
                     <div class="info-card">
+
                         <div class="info-icon icon-green">
                             <i class="fas fa-map-marker-alt"></i>
                         </div>
-                        <div class="info-title">Kota</div>
-                        <p class="info-value">Tasikmalaya</p>
+
+                        <div class="info-title">
+                            Kota
+                        </div>
+
+                        <p class="info-value">
+                            Tasikmalaya
+                        </p>
+
                     </div>
+
                 </div>
 
             </div>
 
-            <!-- Hobi -->
+            <!-- HOBI -->
             <div class="hobby-card">
 
                 <h5 class="section-title">
+
                     <i class="fas fa-heart me-2 text-danger"></i>
                     Hobi Saya
+
                 </h5>
 
                 <div class="row g-3">
 
+                    <!-- HOBI 1 -->
                     <div class="col-md-6">
+
                         <div class="hobby-item">
+
                             <div class="hobby-icon">
                                 <i class="fas fa-gamepad"></i>
                             </div>
+
                             <div>
                                 <h6>Main Game</h6>
-                                <small>Menikmati waktu luang dengan bermain game.</small>
+
+                                <small>
+                                    Menikmati waktu luang dengan bermain game.
+                                </small>
                             </div>
+
                         </div>
+
                     </div>
 
+                    <!-- HOBI 2 -->
                     <div class="col-md-6">
+
                         <div class="hobby-item">
+
                             <div class="hobby-icon">
                                 <i class="fas fa-film"></i>
                             </div>
+
                             <div>
                                 <h6>Nonton</h6>
-                                <small>Menonton film, video, dan hiburan lainnya.</small>
+
+                                <small>
+                                    Menonton film, video, dan hiburan lainnya.
+                                </small>
                             </div>
+
                         </div>
+
                     </div>
 
                 </div>
 
             </div>
 
-            <!-- Footer -->
+            <!-- FOOTER -->
             <div class="footer-text">
-                <p>© <?= date('Y'); ?> About Me | SI PELANG</p>
+                © <?= date('Y'); ?> About Me | SI PELANG
             </div>
 
         </main>
+
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- BOOTSTRAP JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

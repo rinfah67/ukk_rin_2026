@@ -11,6 +11,10 @@ $query_siswa = mysqli_query($koneksi, "
     FROM t_siswa
     ORDER BY id DESC
 ");
+
+if (!$query_siswa) {
+    die("Query gagal: " . mysqli_error($koneksi));
+}
 ?>
 
 <!DOCTYPE html>
@@ -21,7 +25,10 @@ $query_siswa = mysqli_query($koneksi, "
     <title>Kelola Siswa - SI PELANG</title>
 
     <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,6 +44,7 @@ $query_siswa = mysqli_query($koneksi, "
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9;
             color: #334155;
+            margin: 0;
         }
 
         /* Sidebar */
@@ -169,16 +177,16 @@ $query_siswa = mysqli_query($koneksi, "
 <body>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-        <!-- Sidebar -->
         <?php
+        // Menampilkan sidebar
         $current_page = basename($_SERVER['PHP_SELF']);
         include 'layout/sidebar.php';
         ?>
 
         <!-- Konten Utama -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <main class="col px-md-4 py-4">
 
             <!-- Header Halaman -->
             <div class="d-flex justify-content-between align-items-center mb-4 page-header">
@@ -238,11 +246,10 @@ $query_siswa = mysqli_query($koneksi, "
                             <?php
                             $no = 1;
 
-                            if ($query_siswa && mysqli_num_rows($query_siswa) > 0) :
+                            if (mysqli_num_rows($query_siswa) > 0) :
                                 while ($data = mysqli_fetch_assoc($query_siswa)) :
 
                                     $id_val = $data['id'] ?? 0;
-
                                     $status = $data['status_aktif'] ?? 'Tidak Aktif';
 
                                     $status_aktif = strtolower((string) $status) === 'aktif'
@@ -325,7 +332,7 @@ $query_siswa = mysqli_query($koneksi, "
 
 <!-- JavaScript -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

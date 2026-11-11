@@ -1,47 +1,32 @@
 
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// kelola_tahun_ajaran.php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// =====================================
-// AMBIL DATA TAHUN AJARAN
-// =====================================
-$query_ta = mysqli_query(
-    $koneksi,
-    "SELECT id, nama, tanggal_mulai, tanggal_selesai, status_aktif
-     FROM t_tahun_ajaran
-     ORDER BY id DESC"
-);
+// Mengambil data tahun ajaran
+$query_ta = mysqli_query($koneksi, "
+    SELECT id, nama, tanggal_mulai, tanggal_selesai, status_aktif
+    FROM t_tahun_ajaran
+    ORDER BY id DESC
+");
 
 if (!$query_ta) {
     die("Gagal mengambil data tahun ajaran: " . mysqli_error($koneksi));
 }
 
-// =====================================
-// FUNGSI FORMAT TANGGAL
-// =====================================
+// Fungsi format tanggal
 function formatTanggal($tanggal)
 {
-    if (
-        empty($tanggal) ||
-        $tanggal == '0000-00-00'
-    ) {
+    if (empty($tanggal) || $tanggal == '0000-00-00') {
         return '-';
     }
 
     return date('d-m-Y', strtotime($tanggal));
 }
 
-// =====================================
-// FUNGSI ESCAPE HTML
-// =====================================
+// Fungsi escape HTML
 function e($nilai)
 {
     return htmlspecialchars(
@@ -59,27 +44,32 @@ function e($nilai)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Kelola Tahun Ajaran - Si Pelang</title>
+    <title>Kelola Tahun Ajaran - SI PELANG</title>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- DataTables Bootstrap 5 -->
+    <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9;
             color: #334155;
+            margin: 0;
         }
 
+        /* Sidebar */
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -89,167 +79,185 @@ function e($nilai)
             color: #94a3b8;
             padding: 12px 18px;
             border-radius: 8px;
-            margin-bottom: 4px;
-            font-weight: 500;
+            margin-bottom: 5px;
+            transition: 0.2s;
         }
 
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            color: #ffffff;
             background-color: #2563eb;
+            color: #ffffff;
         }
 
+        .sidebar .nav-link.text-danger:hover {
+            background-color: #dc2626;
+            color: #ffffff !important;
+        }
+
+        /* Judul Halaman */
+        .page-title {
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        /* Card */
         .card-custom {
-            background-color: #ffffff;
+            background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
         }
 
+        /* Header Tabel */
         .table-custom-header th {
             background-color: #eff6ff !important;
             color: #1e40af !important;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.78rem;
-            border-bottom: 2px solid #dbeafe !important;
             padding: 14px 12px;
+            white-space: nowrap;
+            vertical-align: middle;
         }
 
+        #tabelTA td {
+            padding: 12px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        /* Tombol Aksi */
         .btn-action-edit {
             background-color: #fef3c7;
-            color: #d97706;
-            border: 1px solid #fde68a;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-weight: 500;
+            color: #92400e;
+            border: none;
+            border-radius: 7px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .btn-action-edit:hover {
-            background-color: #d97706;
-            color: #ffffff;
+            background-color: #fcd34d;
+            color: #78350f;
         }
 
         .btn-action-delete {
             background-color: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fca5a5;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-weight: 500;
+            color: #b91c1c;
+            border: none;
+            border-radius: 7px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .btn-action-delete:hover {
-            background-color: #dc2626;
-            color: #ffffff;
+            background-color: #fecaca;
+            color: #991b1b;
         }
 
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 7px 12px;
-            margin-left: 8px;
+        /* DataTables */
+        .dataTables_wrapper {
+            font-size: 13px;
         }
 
+        .dataTables_wrapper .dataTables_filter input,
         .dataTables_wrapper .dataTables_length select {
             border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 5px 10px;
+            border-radius: 7px;
+            padding: 6px 10px;
+            outline: none;
         }
 
-        .table-responsive {
-            width: 100%;
+        .dataTables_wrapper .dataTables_filter input:focus,
+        .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 6px !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #2563eb !important;
+            color: white !important;
+            border: 1px solid #2563eb !important;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                align-items: flex-start !important;
+                gap: 15px;
+                flex-direction: column;
+            }
         }
     </style>
-
 </head>
 
 <body>
 
 <div class="container-fluid">
+    <div class="row flex-nowrap">
 
-    <div class="row">
+        <?php
+        // Menampilkan sidebar
+        $current_page = basename($_SERVER['PHP_SELF']);
+        include 'layout/sidebar.php';
+        ?>
 
-        <!-- SIDEBAR -->
-        <?php include 'layout/sidebar.php'; ?>
+        <!-- Konten Utama -->
+        <main class="col px-md-4 py-4">
 
-        <!-- KONTEN UTAMA -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-
-            <!-- HEADER HALAMAN -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Header Halaman -->
+            <div class="d-flex justify-content-between align-items-center mb-4 page-header">
 
                 <div>
-                    <h2 class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="fa-solid fa-calendar-days text-primary"></i>
+                    <h3 class="page-title mb-1">
+                        <i class="fa-solid fa-calendar-days text-primary me-2"></i>
                         Kelola Tahun Ajaran
-                    </h2>
+                    </h3>
 
-                    <p class="text-muted mb-0">
-                        Kelola data periode tahun ajaran aktif.
+                    <p class="text-secondary mb-0">
+                        Kelola data periode tahun ajaran SI PELANG.
                     </p>
                 </div>
 
-                <div class="d-flex gap-2">
-
-                    <a href="dashboard.php"
-                       class="btn btn-white text-secondary border fw-medium px-3 shadow-sm"
-                       style="border-radius: 10px;">
-
-                        <i class="fa-solid fa-arrow-left me-1"></i>
-                        Dashboard
-
-                    </a>
-
-                    <a href="tambah_tahun_ajaran.php"
-                       class="btn btn-primary fw-medium px-4 shadow-sm"
-                       style="border-radius: 10px; background-color: #2563eb;">
-
-                        <i class="fa-solid fa-plus me-1"></i>
-                        Tambah Tahun Ajaran
-
-                    </a>
-
-                </div>
+                <a href="tambah_tahun_ajaran.php" class="btn btn-primary px-3 fw-semibold">
+                    <i class="fas fa-plus me-1"></i>
+                    Tambah Tahun Ajaran
+                </a>
 
             </div>
 
-            <!-- TABEL DATA -->
+            <!-- Card Data Tahun Ajaran -->
             <div class="card card-custom p-4">
+
+                <div class="mb-3">
+                    <h5 class="fw-bold mb-1">
+                        <i class="fas fa-table text-primary me-2"></i>
+                        Data Tahun Ajaran
+                    </h5>
+
+                    <p class="text-secondary small mb-0">
+                        Cari, urutkan, edit, dan hapus data tahun ajaran.
+                    </p>
+                </div>
 
                 <div class="table-responsive">
 
-                    <table id="tabelTA"
-                           class="table table-hover align-middle w-100">
+                    <table id="tabelTA" class="table table-bordered table-hover align-middle w-100">
 
-                        <thead class="table-custom-header">
-
+                        <thead class="table-custom-header text-center">
                             <tr>
-                                <th class="text-center" style="width: 50px;">
-                                    No
-                                </th>
-
-                                <th>
-                                    Tahun Ajaran
-                                </th>
-
-                                <th>
-                                    Tanggal Mulai
-                                </th>
-
-                                <th>
-                                    Tanggal Selesai
-                                </th>
-
-                                <th class="text-center">
-                                    Status
-                                </th>
-
-                                <th class="text-center" style="width: 140px;">
-                                    Aksi
-                                </th>
+                                <th>No</th>
+                                <th>Tahun Ajaran</th>
+                                <th>Tanggal Mulai</th>
+                                <th>Tanggal Selesai</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
                             </tr>
-
                         </thead>
 
                         <tbody>
@@ -260,54 +268,43 @@ function e($nilai)
                             while ($data = mysqli_fetch_assoc($query_ta)) :
 
                                 $id = (int) $data['id'];
-
                                 $nama = $data['nama'];
 
-                                $tanggal_mulai = formatTanggal(
-                                    $data['tanggal_mulai']
-                                );
-
-                                $tanggal_selesai = formatTanggal(
-                                    $data['tanggal_selesai']
-                                );
+                                $tanggal_mulai = formatTanggal($data['tanggal_mulai']);
+                                $tanggal_selesai = formatTanggal($data['tanggal_selesai']);
 
                                 $status = (int) $data['status_aktif'];
                             ?>
 
                             <tr>
 
-                                <!-- NOMOR -->
-                                <td class="text-center text-muted fw-medium">
+                                <td class="text-center">
                                     <?= $no++; ?>
                                 </td>
 
-                                <!-- TAHUN AJARAN -->
-                                <td class="fw-semibold text-dark">
+                                <td class="fw-semibold">
                                     <?= e($nama); ?>
                                 </td>
 
-                                <!-- TANGGAL MULAI -->
                                 <td>
                                     <?= e($tanggal_mulai); ?>
                                 </td>
 
-                                <!-- TANGGAL SELESAI -->
                                 <td>
                                     <?= e($tanggal_selesai); ?>
                                 </td>
 
-                                <!-- STATUS -->
                                 <td class="text-center">
 
                                     <?php if ($status === 1) : ?>
 
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                        <span class="badge bg-success">
                                             Aktif
                                         </span>
 
                                     <?php else : ?>
 
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1">
+                                        <span class="badge bg-secondary">
                                             Tidak Aktif
                                         </span>
 
@@ -315,29 +312,20 @@ function e($nilai)
 
                                 </td>
 
-                                <!-- AKSI -->
-                                <td class="text-center">
+                                <td class="text-center text-nowrap">
 
-                                    <div class="d-flex justify-content-center gap-2">
+                                    <a href="edit_tahun_ajaran.php?id=<?= $id; ?>"
+                                       class="btn btn-action-edit">
+                                        <i class="fas fa-pen-to-square"></i>
+                                        Edit
+                                    </a>
 
-                                        <a href="edit_tahun_ajaran.php?id=<?= $id; ?>"
-                                           class="btn-action-edit text-decoration-none btn-sm"
-                                           title="Edit Data">
-
-                                            <i class="fa-solid fa-pen-to-square"></i>
-
-                                        </a>
-
-                                        <a href="hapus_tahun_ajaran.php?id=<?= $id; ?>"
-                                           class="btn-action-delete text-decoration-none btn-sm"
-                                           title="Hapus Data"
-                                           onclick="return confirm('Yakin ingin menghapus data tahun ajaran ini?')">
-
-                                            <i class="fa-solid fa-trash"></i>
-
-                                        </a>
-
-                                    </div>
+                                    <a href="hapus_tahun_ajaran.php?id=<?= $id; ?>"
+                                       class="btn btn-action-delete"
+                                       onclick="return confirm('Yakin ingin menghapus data tahun ajaran ini?')">
+                                        <i class="fas fa-trash"></i>
+                                        Hapus
+                                    </a>
 
                                 </td>
 
@@ -350,64 +338,48 @@ function e($nilai)
                     </table>
 
                 </div>
-
             </div>
 
         </main>
 
     </div>
-
 </div>
 
-<!-- JAVASCRIPT -->
+<!-- JavaScript -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+<!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
+    $(document).ready(function () {
 
-$(document).ready(function() {
+        // Mengaktifkan DataTables
+        $('#tabelTA').DataTable({
+            pageLength: 10,
 
-    $('#tabelTA').DataTable({
+            lengthMenu: [5, 10, 25, 50, 100],
 
-        language: {
-
-            emptyTable: "Belum ada data Tahun Ajaran di database.",
-
-            zeroRecords: "Data tahun ajaran tidak ditemukan.",
-
-            search: "Cari:",
-
-            lengthMenu: "Tampilkan _MENU_ data",
-
-            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-
-            infoEmpty: "Tidak ada data yang ditampilkan",
-
-            infoFiltered: "(difilter dari _MAX_ total data)",
-
-            paginate: {
-
-                first: "Pertama",
-
-                last: "Terakhir",
-
-                next: "Berikutnya",
-
-                previous: "Sebelumnya"
-
+            language: {
+                emptyTable: "Belum ada data Tahun Ajaran di database.",
+                zeroRecords: "Data tahun ajaran tidak ditemukan.",
+                search: "Cari:",
+                lengthMenu: "Tampilkan _MENU_ data per halaman",
+                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                infoEmpty: "Tidak ada data yang ditampilkan",
+                infoFiltered: "(difilter dari _MAX_ total data)",
+                paginate: {
+                    first: "Pertama",
+                    last: "Terakhir",
+                    next: "Selanjutnya",
+                    previous: "Sebelumnya"
+                }
             }
-
-        }
+        });
 
     });
-
-});
-
 </script>
 
 </body>

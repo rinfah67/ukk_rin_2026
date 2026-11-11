@@ -2,16 +2,12 @@
 <?php
 // laporan.php
 
-session_start();
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Memeriksa login
-if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
-    header("Location: login.php");
-    exit;
-}
-
-// Mengambil role dan ID pengguna
+// =====================================
+// CEK ROLE DAN ID USER
+// =====================================
 $role = $_SESSION['role'] ?? '';
 $id_user = (int) ($_SESSION['id_user'] ?? 0);
 
@@ -21,10 +17,12 @@ if ($role !== 'admin' && $role !== 'guru') {
     exit;
 }
 
+// =====================================
+// CEK WALI KELAS
+// =====================================
 $is_walikelas = false;
 $id_guru = 0;
 
-// Memeriksa apakah guru adalah wali kelas aktif
 if ($role === 'guru') {
 
     $stmt_guru = mysqli_prepare(
@@ -71,7 +69,9 @@ if ($role === 'guru') {
     }
 }
 
-// Mengambil laporan berdasarkan hak akses
+// =====================================
+// AMBIL DATA LAPORAN
+// =====================================
 if ($role === 'admin') {
 
     // Admin melihat seluruh laporan
@@ -104,36 +104,47 @@ if ($role === 'admin') {
     $query = mysqli_stmt_get_result($stmt_laporan);
 }
 
-// Memeriksa error query
+// =====================================
+// CEK ERROR QUERY
+// =====================================
 $error_query = $query ? '' : mysqli_error($koneksi);
 
-// Halaman aktif untuk sidebar
-$current_page = basename($_SERVER['PHP_SELF']);
+// =====================================
+// FUNGSI ESCAPE HTML
+// =====================================
+function e($nilai)
+{
+    return htmlspecialchars(
+        (string)($nilai ?? ''),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Laporan Pelanggaran - SI PELANG</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- DataTables -->
+    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         body {
-            font-family: 'Inter', sans-serif;
             background-color: #f1f5f9;
             color: #334155;
         }
@@ -163,36 +174,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
             color: #ffffff !important;
         }
 
-        /* Judul Halaman */
-        .page-title {
-            font-weight: 800;
-            color: #1e293b;
-        }
-
         /* Card */
         .card-custom {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
-        }
-
-        /* Header Tabel */
-        .table-custom-header th {
-            background-color: #eff6ff;
-            color: #1e40af;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 14px 12px;
-            white-space: nowrap;
-            vertical-align: middle;
-        }
-
-        #tabelLaporan td {
-            padding: 12px;
-            font-size: 13px;
-            vertical-align: middle;
+            background-color: #ffffff;
+            border: none;
+            border-radius: 12px;
         }
 
         /* Ikon Judul */
@@ -208,39 +194,45 @@ $current_page = basename($_SERVER['PHP_SELF']);
             font-size: 23px;
         }
 
+        /* Header Tabel */
+        .table-custom-header th {
+            background-color: #eff6ff !important;
+            color: #1e40af !important;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        #tabelLaporan td {
+            padding: 12px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
         /* DataTables */
         .dataTables_wrapper {
             font-size: 13px;
         }
 
-        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 7px 12px;
+            margin-left: 8px;
+        }
+
         .dataTables_wrapper .dataTables_length select {
             border: 1px solid #cbd5e1;
-            border-radius: 7px;
-            padding: 6px 10px;
-            outline: none;
-        }
-
-        .dataTables_wrapper .dataTables_filter input:focus,
-        .dataTables_wrapper .dataTables_length select:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border-radius: 6px !important;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: #2563eb !important;
-            color: white !important;
-            border: 1px solid #2563eb !important;
+            border-radius: 8px;
+            padding: 5px 10px;
         }
 
         /* Cetak */
         @media print {
+
             body {
-                background: white !important;
+                background: #ffffff !important;
             }
 
             .sidebar,
@@ -275,10 +267,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
         }
 
         @media (max-width: 768px) {
+
             .page-header {
                 align-items: flex-start !important;
                 flex-direction: column;
             }
+
         }
     </style>
 </head>
@@ -286,42 +280,46 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <body>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-        <!-- Sidebar -->
-        <?php include 'layout/sidebar.php'; ?>
+        <!-- SIDEBAR -->
+        <?php
+        $current_page = basename($_SERVER['PHP_SELF']);
+        include 'layout/sidebar.php';
+        ?>
 
-        <!-- Konten Utama -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <!-- KONTEN -->
+        <main class="col px-md-4 py-4">
 
-            <!-- Header Halaman -->
-            <div class="d-flex justify-content-between align-items-center mb-4 page-header">
+            <!-- HEADER HALAMAN -->
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-4 page-header">
 
                 <div class="d-flex align-items-center gap-3">
 
                     <div class="page-icon">
-                        <i class="fas fa-file-alt"></i>
+                        <i class="fa-solid fa-file-lines"></i>
                     </div>
 
                     <div>
-                        <h3 class="page-title mb-1">
+                        <h3 class="fw-bold text-dark mb-1">
                             Laporan Pelanggaran
                         </h3>
 
-                        <p class="text-secondary mb-0">
+                        <p class="text-muted mb-0">
                             Rekap data pelanggaran siswa SI PELANG.
                         </p>
                     </div>
 
                 </div>
 
-                <div class="d-flex gap-2 no-print">
+                <!-- TOMBOL CETAK -->
+                <div class="no-print">
 
                     <button type="button"
-                            class="btn btn-primary fw-semibold px-3"
+                            class="btn btn-primary"
                             onclick="window.print()">
 
-                        <i class="fas fa-print me-1"></i>
+                        <i class="fa-solid fa-print me-1"></i>
                         Cetak Laporan
 
                     </button>
@@ -330,159 +328,182 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
             </div>
 
-            <!-- Error Query -->
-            <?php if ($error_query !== ''): ?>
+            <!-- ERROR QUERY -->
+            <?php if ($error_query !== '') : ?>
 
                 <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i>
+
+                    <i class="fa-solid fa-circle-exclamation me-2"></i>
 
                     <strong>Gagal mengambil data:</strong>
-                    <?= htmlspecialchars($error_query); ?>
+
+                    <?= e($error_query); ?>
+
                 </div>
 
             <?php endif; ?>
 
-            <!-- Informasi Hak Akses -->
+            <!-- INFORMASI HAK AKSES -->
             <div class="alert alert-info no-print">
 
-                <i class="fas fa-circle-info me-2"></i>
+                <i class="fa-solid fa-circle-info me-2"></i>
 
-                <?php if ($role === 'admin'): ?>
+                <?php if ($role === 'admin') : ?>
 
                     Anda melihat seluruh laporan pelanggaran siswa.
 
-                <?php else: ?>
+                <?php else : ?>
 
-                    Anda melihat laporan siswa pada kelas yang menjadi tanggung jawab Anda.
+                    Anda melihat laporan siswa pada kelas yang menjadi tanggung jawab Anda sebagai wali kelas.
 
                 <?php endif; ?>
 
             </div>
 
-            <!-- Card Data Laporan -->
-            <div class="card card-custom p-4">
+            <!-- CARD DATA LAPORAN -->
+            <div class="card card-custom shadow-sm">
 
-                <div class="mb-3">
+                <div class="card-body p-4">
 
-                    <h5 class="fw-bold mb-1">
-                        <i class="fas fa-table text-primary me-2"></i>
-                        Data Laporan Pelanggaran
-                    </h5>
+                    <div class="border-bottom pb-3 mb-4">
 
-                    <p class="text-secondary small mb-0">
-                        Cari, urutkan, dan cetak data laporan pelanggaran.
-                    </p>
+                        <h5 class="fw-bold text-dark mb-1">
+                            <i class="fa-solid fa-table text-primary me-2"></i>
+                            Data Laporan Pelanggaran
+                        </h5>
 
-                </div>
-
-                <div class="table-responsive">
-
-                    <table id="tabelLaporan"
-                           class="table table-bordered table-hover align-middle w-100">
-
-                        <thead class="table-custom-header text-center">
-
-                            <tr>
-                                <th>No.</th>
-                                <th>Nama Siswa</th>
-                                <th>Kelas</th>
-                                <th>Pelanggaran</th>
-                                <th>Tanggal</th>
-                                <th>Poin</th>
-                                <th>Tindakan</th>
-                                <th>Status</th>
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                            <?php if ($query && mysqli_num_rows($query) > 0): ?>
-
-                                <?php $no = 1; ?>
-
-                                <?php while ($row = mysqli_fetch_assoc($query)): ?>
-
-                                    <tr>
-
-                                        <td class="text-center">
-                                            <?= $no++; ?>
-                                        </td>
-
-                                        <td class="fw-semibold">
-                                            <?= htmlspecialchars($row['nama_siswa'] ?? '-'); ?>
-                                        </td>
-
-                                        <td>
-                                            <?= htmlspecialchars($row['nama_kelas'] ?? '-'); ?>
-                                        </td>
-
-                                        <td>
-                                            <?= htmlspecialchars($row['nama_pelanggaran'] ?? '-'); ?>
-                                        </td>
-
-                                        <td class="text-center">
-                                            <?php
-                                            if (!empty($row['tanggal'])) {
-                                                echo date('d-m-Y', strtotime($row['tanggal']));
-                                            } else {
-                                                echo '-';
-                                            }
-                                            ?>
-                                        </td>
-
-                                        <td class="text-center">
-                                            <span class="badge bg-danger">
-                                                <?= (int) ($row['poin'] ?? 0); ?> Poin
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <?= htmlspecialchars($row['tindakan'] ?? '-'); ?>
-                                        </td>
-
-                                        <td class="text-center">
-
-                                            <?php
-                                            $status = $row['status'] ?? '-';
-
-                                            if ($status === 'Selesai') {
-                                                echo '<span class="badge bg-success">Selesai</span>';
-                                            } elseif ($status === 'Proses') {
-                                                echo '<span class="badge bg-warning text-dark">Proses</span>';
-                                            } else {
-                                                echo '<span class="badge bg-secondary">'
-                                                    . htmlspecialchars($status)
-                                                    . '</span>';
-                                            }
-                                            ?>
-
-                                        </td>
-
-                                    </tr>
-
-                                <?php endwhile; ?>
-
-                            <?php endif; ?>
-
-                        </tbody>
-
-                    </table>
-
-                    <?php if ($query && mysqli_num_rows($query) === 0): ?>
-
-                        <p class="text-center text-secondary mt-3 mb-0">
-                            Belum ada data laporan pelanggaran.
+                        <p class="text-muted small mb-0">
+                            Cari, urutkan, dan cetak data laporan pelanggaran siswa.
                         </p>
 
-                    <?php endif; ?>
+                    </div>
+
+                    <!-- TABEL LAPORAN -->
+                    <div class="table-responsive">
+
+                        <table id="tabelLaporan"
+                               class="table table-bordered table-hover align-middle w-100">
+
+                            <thead class="table-custom-header text-center">
+
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Kelas</th>
+                                    <th>Pelanggaran</th>
+                                    <th>Tanggal</th>
+                                    <th>Poin</th>
+                                    <th>Tindakan</th>
+                                    <th>Status</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <?php if ($query && mysqli_num_rows($query) > 0) : ?>
+
+                                    <?php $no = 1; ?>
+
+                                    <?php while ($row = mysqli_fetch_assoc($query)) : ?>
+
+                                        <tr>
+
+                                            <td class="text-center">
+                                                <?= $no++; ?>
+                                            </td>
+
+                                            <td class="fw-semibold">
+                                                <?= e($row['nama_siswa'] ?? '-'); ?>
+                                            </td>
+
+                                            <td>
+                                                <?= e($row['nama_kelas'] ?? '-'); ?>
+                                            </td>
+
+                                            <td>
+                                                <?= e($row['nama_pelanggaran'] ?? '-'); ?>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <?php
+                                                if (
+                                                    !empty($row['tanggal']) &&
+                                                    $row['tanggal'] != '0000-00-00'
+                                                ) {
+                                                    echo e(date('d-m-Y', strtotime($row['tanggal'])));
+                                                } else {
+                                                    echo '-';
+                                                }
+                                                ?>
+                                            </td>
+
+                                            <td class="text-center">
+
+                                                <span class="badge bg-danger">
+                                                    <?= (int) ($row['poin'] ?? 0); ?> Poin
+                                                </span>
+
+                                            </td>
+
+                                            <td>
+                                                <?= e($row['tindakan'] ?? '-'); ?>
+                                            </td>
+
+                                            <td class="text-center">
+
+                                                <?php
+                                                $status = $row['status'] ?? '-';
+
+                                                if ($status === 'Selesai') :
+                                                ?>
+
+                                                    <span class="badge bg-success">
+                                                        Selesai
+                                                    </span>
+
+                                                <?php elseif ($status === 'Proses') : ?>
+
+                                                    <span class="badge bg-warning text-dark">
+                                                        Proses
+                                                    </span>
+
+                                                <?php else : ?>
+
+                                                    <span class="badge bg-secondary">
+                                                        <?= e($status); ?>
+                                                    </span>
+
+                                                <?php endif; ?>
+
+                                            </td>
+
+                                        </tr>
+
+                                    <?php endwhile; ?>
+
+                                <?php endif; ?>
+
+                            </tbody>
+
+                        </table>
+
+                        <?php if ($query && mysqli_num_rows($query) === 0) : ?>
+
+                            <p class="text-center text-muted mt-3 mb-0">
+                                Belum ada data laporan pelanggaran.
+                            </p>
+
+                        <?php endif; ?>
+
+                    </div>
 
                 </div>
 
             </div>
 
-            <!-- Footer -->
-            <div class="text-center text-secondary small mt-4">
+            <!-- FOOTER -->
+            <div class="text-center text-muted small mt-4">
                 SI PELANG &copy; <?= date('Y'); ?>
             </div>
 
@@ -491,44 +512,59 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </div>
 </div>
 
-<!-- JavaScript -->
+<!-- JQUERY -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- DataTables -->
+<!-- BOOTSTRAP JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- DATATABLES JS -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
+<!-- INISIALISASI DATATABLES -->
 <script>
-    $(document).ready(function () {
+$(document).ready(function () {
 
-        // Mengaktifkan DataTables
-        $('#tabelLaporan').DataTable({
+    $('#tabelLaporan').DataTable({
 
-            pageLength: 10,
+        pageLength: 10,
 
-            lengthMenu: [5, 10, 25, 50, 100],
+        lengthMenu: [5, 10, 25, 50, 100],
 
-            order: [],
+        order: [],
 
-            language: {
-                lengthMenu: "Tampilkan _MENU_ data per halaman",
-                zeroRecords: "Data laporan tidak ditemukan",
-                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-                infoEmpty: "Tidak ada data tersedia",
-                infoFiltered: "(difilter dari _MAX_ total data)",
-                search: "Cari:",
-                paginate: {
-                    first: "Pertama",
-                    last: "Terakhir",
-                    next: "Selanjutnya",
-                    previous: "Sebelumnya"
-                }
+        language: {
+
+            lengthMenu: "Tampilkan _MENU_ data",
+
+            zeroRecords: "Data laporan tidak ditemukan",
+
+            emptyTable: "Belum ada data laporan pelanggaran",
+
+            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+
+            infoEmpty: "Tidak ada data tersedia",
+
+            infoFiltered: "(difilter dari _MAX_ total data)",
+
+            search: "Cari:",
+
+            searchPlaceholder: "Cari laporan...",
+
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "Selanjutnya",
+                previous: "Sebelumnya"
             }
 
-        });
+        }
 
     });
+
+});
 </script>
 
 </body>

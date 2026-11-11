@@ -1,28 +1,25 @@
 
 <?php
-// Memulai session
+// layout/sidebar.php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Mengambil data session
-$role = $_SESSION['role'] ?? 'guru';
+$role = $_SESSION['role'] ?? '';
 $id_user = (int) ($_SESSION['id_user'] ?? 0);
 
-// Halaman aktif
-$halaman_aktif = basename($_SERVER['PHP_SELF']);
+$current_page = $current_page ?? basename($_SERVER['PHP_SELF']);
 
-// Mengecek wali kelas
+// Memeriksa apakah guru merupakan wali kelas aktif
 $is_wali_kelas = false;
 
 if ($role === 'guru' && $id_user > 0) {
-
-    require_once __DIR__ . '/../config/koneksi.php';
-
     $query_wali = mysqli_query($koneksi, "
         SELECT tw.id
         FROM t_guru tg
-        INNER JOIN t_wali_kelas tw ON tw.guru_id = tg.id
+        INNER JOIN t_wali_kelas tw
+            ON tw.guru_id = tg.id
         WHERE tg.user_id = $id_user
         AND tw.status_aktif = 1
         LIMIT 1
@@ -34,162 +31,266 @@ if ($role === 'guru' && $id_user > 0) {
 }
 ?>
 
-<nav class="col-md-3 col-lg-2 d-md-block sidebar collapse p-3">
+<style>
+    body {
+        overflow-x: hidden;
+    }
 
-    <!-- Judul Sidebar -->
-    <h4 class="text-white mb-4 px-2 fs-5 fw-bold d-flex align-items-center gap-2">
-        <i class="fa-solid fa-shield-halved text-primary"></i>
-        Si Pelang
-    </h4>
+    .sidebar {
+    width: 250px !important;
+    min-width: 250px;
+    flex: 0 0 250px !important;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    }
 
-    <ul class="nav flex-column">
+    .sidebar .brand-title {
+        color: #ffffff;
+        font-size: 20px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
 
-        <?php if ($role === 'admin') : ?>
+    .sidebar .nav-link {
+        color: #94a3b8;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        transition: 0.2s;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+    }
 
-            <!-- MENU ADMIN -->
+    .sidebar .nav-link i {
+        width: 20px;
+        min-width: 20px;
+        text-align: center;
+        font-size: 15px;
+    }
+
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+        background-color: #2563eb;
+        color: #ffffff;
+    }
+
+    .sidebar .nav-link.text-danger:hover {
+        background-color: #dc2626;
+        color: #ffffff !important;
+    }
+
+    .sidebar .menu-title {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin: 20px 12px 10px;
+        letter-spacing: 1px;
+    }
+
+    @media (max-width: 767.98px) {
+        .sidebar {
+            width: 100%;
+            min-height: auto;
+            flex: 0 0 100%;
+        }
+    }
+</style>
+
+<nav class="sidebar col-md-3 col-lg-2 d-md-block collapse">
+
+    <!-- Logo -->
+    <div class="mb-4 px-2">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check text-primary fs-3"></i>
+            <span class="brand-title">SI PELANG</span>
+        </div>
+
+        <small class="text-secondary">
+            Sistem Pelanggaran Siswa
+        </small>
+    </div>
+
+    <!-- Menu Admin -->
+    <?php if ($role === 'admin') : ?>
+
+        <div class="menu-title">Menu Utama</div>
+
+        <ul class="nav flex-column">
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'dashboard.php' ? 'active' : ''; ?>" href="dashboard.php">
-                    <i class="fa-solid fa-house me-2"></i>
+                <a href="dashboard.php"
+                   class="nav-link <?= $current_page == 'dashboard.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-speedometer2"></i>
                     Dashboard
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_siswa.php' ? 'active' : ''; ?>" href="kelola_siswa.php">
-                    <i class="fa-solid fa-users me-2"></i>
+                <a href="kelola_siswa.php"
+                   class="nav-link <?= $current_page == 'kelola_siswa.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-people"></i>
                     Data Siswa
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_guru.php' ? 'active' : ''; ?>" href="kelola_guru.php">
-                    <i class="fa-solid fa-chalkboard-user me-2"></i>
+                <a href="kelola_guru.php"
+                   class="nav-link <?= $current_page == 'kelola_guru.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-person-badge"></i>
                     Data Guru
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_kelas.php' ? 'active' : ''; ?>" href="kelola_kelas.php">
-                    <i class="fa-solid fa-school me-2"></i>
+                <a href="kelola_kelas.php"
+                   class="nav-link <?= $current_page == 'kelola_kelas.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-building"></i>
                     Data Kelas
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_tahun_ajaran.php' ? 'active' : ''; ?>" href="kelola_tahun_ajaran.php">
-                    <i class="fa-solid fa-calendar-days me-2"></i>
-                    Data Tahun Ajaran
+                <a href="kelola_tahun_ajaran.php"
+                   class="nav-link <?= $current_page == 'kelola_tahun_ajaran.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-calendar3"></i>
+                    Tahun Ajaran
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_wali_kelas.php' ? 'active' : ''; ?>" href="kelola_wali_kelas.php">
-                    <i class="fa-solid fa-user-tie me-2"></i>
-                    Data Wali Kelas
+                <a href="kelola_wali_kelas.php"
+                   class="nav-link <?= $current_page == 'kelola_wali_kelas.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-person-workspace"></i>
+                    Wali Kelas
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'penempatan_siswa.php' ? 'active' : ''; ?>" href="penempatan_siswa.php">
-                    <i class="fa-solid fa-user-gear me-2"></i>
+                <a href="penempatan_siswa.php"
+                   class="nav-link <?= $current_page == 'penempatan_siswa.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-person-lines-fill"></i>
                     Penempatan Siswa
                 </a>
             </li>
 
+        </ul>
+
+        <div class="menu-title">Pelanggaran</div>
+
+        <ul class="nav flex-column">
+
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_pelanggaran_kategori.php' ? 'active' : ''; ?>" href="kelola_pelanggaran_kategori.php">
-                    <i class="fa-solid fa-layer-group me-2"></i>
+                <a href="kelola_pelanggaran_kategori.php"
+                   class="nav-link <?= $current_page == 'kelola_pelanggaran_kategori.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-tags"></i>
                     Kategori Pelanggaran
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_jenis_pelanggaran.php' ? 'active' : ''; ?>" href="kelola_jenis_pelanggaran.php">
-                    <i class="fa-solid fa-list-check me-2"></i>
-                    Jenis Pelanggaran
+                <a href="kelola_jenis_pelanggaran.php"
+                   class="nav-link <?= $current_page == 'kelola_jenis_pelanggaran.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Kelola Jenis Pelanggaran
                 </a>
             </li>
 
-            <hr class="text-secondary my-3">
-
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'laporan.php' ? 'active' : ''; ?>" href="laporan.php">
-                    <i class="fa-solid fa-file-invoice me-2"></i>
+                <a href="laporan.php"
+                   class="nav-link <?= $current_page == 'laporan.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-file-earmark-bar-graph"></i>
                     Laporan
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'about_me.php' ? 'active' : ''; ?>" href="about_me.php">
-                    <i class="fa-solid fa-circle-info me-2"></i>
-                    About Me
-                </a>
-            </li>
+        </ul>
 
-        <?php elseif ($role === 'guru') : ?>
+    <?php elseif ($role === 'guru') : ?>
 
-            <!-- MENU GURU -->
+        <!-- Menu Guru -->
+        <div class="menu-title">Menu Utama</div>
+
+        <ul class="nav flex-column">
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'dashboard.php' ? 'active' : ''; ?>" href="dashboard.php">
-                    <i class="fa-solid fa-house me-2"></i>
+                <a href="dashboard.php"
+                   class="nav-link <?= $current_page == 'dashboard.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-speedometer2"></i>
                     Dashboard
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'kelola_catatan_pelanggaran.php' ? 'active' : ''; ?>" href="kelola_catatan_pelanggaran.php">
-                    <i class="fa-solid fa-clipboard-list me-2"></i>
-                    Catatan Pelanggaran
+                <a href="kelola_catatan_pelanggaran.php"
+                   class="nav-link <?= $current_page == 'kelola_catatan_pelanggaran.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-journal-text"></i>
+                    Catat Pelanggaran
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'tindakan.php' ? 'active' : ''; ?>" href="tindakan.php">
-                    <i class="fa-solid fa-hand-holding-heart me-2"></i>
+                <a href="tindakan.php"
+                   class="nav-link <?= $current_page == 'tindakan.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-clipboard-check"></i>
                     Tindakan
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'riwayat.php' ? 'active' : ''; ?>" href="riwayat.php">
-                    <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                <a href="riwayat.php"
+                   class="nav-link <?= $current_page == 'riwayat.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-clock-history"></i>
                     Riwayat
                 </a>
             </li>
 
+            <li class="nav-item">
+                <a href="rekap_poin.php"
+                   class="nav-link <?= $current_page == 'rekap_poin.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-clock-history"></i>
+                    Rekap Poin
+                </a>
+            </li>
             <?php if ($is_wali_kelas) : ?>
 
-                <hr class="text-secondary my-3">
-
                 <li class="nav-item">
-                    <a class="nav-link <?= $halaman_aktif == 'laporan.php' ? 'active' : ''; ?>" href="laporan.php">
-                        <i class="fa-solid fa-file-invoice me-2"></i>
+                    <a href="laporan.php"
+                       class="nav-link <?= $current_page == 'laporan.php' ? 'active' : ''; ?>">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
                         Laporan
                     </a>
                 </li>
 
             <?php endif; ?>
 
-            <li class="nav-item">
-                <a class="nav-link <?= $halaman_aktif == 'about_me.php' ? 'active' : ''; ?>" href="about_me.php">
-                    <i class="fa-solid fa-circle-info me-2"></i>
-                    About Me
-                </a>
-            </li>
+        </ul>
 
-        <?php endif; ?>
+    <?php endif; ?>
 
-        <!-- LOGOUT -->
-        <hr class="text-secondary my-3">
+    <!-- Menu Akun -->
+    <div class="menu-title">Akun</div>
 
-        <li class="nav-item mt-2">
-            <a class="nav-link text-danger fw-bold" href="logout.php">
-                <i class="fa-solid fa-right-from-bracket me-2"></i>
+    <ul class="nav flex-column">
+
+        <li class="nav-item">
+            <a href="about_me.php"
+               class="nav-link <?= $current_page == 'about_me.php' ? 'active' : ''; ?>">
+                <i class="bi bi-person-circle"></i>
+                About Me
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">
+                <i class="bi bi-box-arrow-right"></i>
                 Logout
             </a>
         </li>
 
     </ul>
+
 </nav>

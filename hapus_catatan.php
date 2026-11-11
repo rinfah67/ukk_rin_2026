@@ -1,35 +1,86 @@
+
 <?php
-session_start();
+// hapus_catatan_pelanggaran.php
+
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-if (!isset($_SESSION['login'])) {
-    header("Location: login.php");
+// ============================================
+// CEK HAK AKSES GURU
+// ============================================
+
+if (($_SESSION['role'] ?? '') !== 'guru') {
+    header("Location: dashboard.php");
     exit;
 }
 
-if ($_SESSION['role'] != 'guru' && $_SESSION['role'] != 'admin') {
-    die("Akses ditolak.");
+// ============================================
+// CEK METODE REQUEST
+// ============================================
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: kelola_catatan_pelanggaran.php");
+    exit;
 }
 
-$id = (int)($_GET['id'] ?? 0);
+// ============================================
+// CEK TOKEN CSRF
+// ============================================
+
+$csrf_token = $_POST['csrf_token'] ?? '';
+
+if (
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $csrf_token)
+) {
+    $_SESSION['pesan_error'] = "Permintaan tidak valid.";
+    header("Location: kelola_catatan_pelanggaran.php");
+    exit;
+}
+
+// ============================================
+// AMBIL ID CATATAN
+// ============================================
+
+$id = (int) ($_POST['id'] ?? 0);
 
 if ($id <= 0) {
-    die("ID catatan tidak valid.");
+    $_SESSION['pesan_error'] = "ID catatan tidak valid.";
+    header("Location: kelola_catatan_pelanggaran.php");
+    exit;
 }
+
+// ============================================
+// HAPUS DATA
+// ============================================
 
 $stmt = mysqli_prepare(
     $koneksi,
     "DELETE FROM t_pelanggaran_siswa WHERE id = ?"
 );
 
-mysqli_stmt_bind_param($stmt, "i", $id);
-
-if (mysqli_stmt_execute($stmt)) {
-    mysqli_stmt_close($stmt);
-    header("Location: catatan_pelanggaran.php?pesan=hapus");
+if (!$stmt) {
+    $_SESSION['pesan_error'] = "Query gagal disiapkan.";
+    header("Location: kelola_catatan_pelanggaran.php");
     exit;
 }
 
-$error = mysqli_stmt_error($stmt);
+mysqli_stmt_bind_param($stmt, "i", $id);
+
+if (mysqli_stmt_execute($stmt)) {
+
+    if (mysqli_stmt_affected_rows($stmt) > 0) {
+        $_SESSION['pesan_sukses'] = "Catatan pelanggaran berhasil dihapus.";
+    } else {
+        $_SESSION['pesan_error'] = "Data catatan tidak ditemukan.";
+    }
+
+} else {
+    $_SESSION['pesan_error'] = "Catatan gagal dihapus. Periksa apakah data masih terhubung dengan tabel lain.";
+}
+
 mysqli_stmt_close($stmt);
-die("Gagal menghapus catatan: " . $error);
+
+header("Location: kelola_catatan_pelanggaran.php");
+exit;
+?>

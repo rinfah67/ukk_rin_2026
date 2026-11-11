@@ -1,17 +1,64 @@
 
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// kelola_guru.php
 
+include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Ambil data guru dari database
-$query_guru = mysqli_query(
-    $koneksi,
-    "SELECT * FROM t_guru ORDER BY id DESC"
-);
+// Mengambil data guru
+$query_guru = mysqli_query($koneksi, "
+    SELECT *
+    FROM t_guru
+    ORDER BY id DESC
+");
 
+if (!$query_guru) {
+    die("Query gagal: " . mysqli_error($koneksi));
+}
+
+// Menghitung jumlah guru aktif
+$query_guru_aktif = mysqli_query($koneksi, "
+    SELECT COUNT(*) AS total
+    FROM t_guru
+    WHERE status_aktif = 1
+");
+
+if (!$query_guru_aktif) {
+    die("Query guru aktif gagal: " . mysqli_error($koneksi));
+}
+
+$data_guru_aktif = mysqli_fetch_assoc($query_guru_aktif);
+$guru_aktif = (int)$data_guru_aktif['total'];
+
+// Menghitung jumlah guru yang menjadi wali kelas aktif
+$query_wali_kelas = mysqli_query($koneksi, "
+    SELECT COUNT(DISTINCT guru_id) AS total
+    FROM t_wali_kelas
+    WHERE status_aktif = 1
+");
+
+if (!$query_wali_kelas) {
+    die("Query wali kelas gagal: " . mysqli_error($koneksi));
+}
+
+$data_wali_kelas = mysqli_fetch_assoc($query_wali_kelas);
+$guru_wali_kelas = (int)$data_wali_kelas['total'];
+
+// Menghitung jumlah guru tidak aktif
+$query_guru_tidak_aktif = mysqli_query($koneksi, "
+    SELECT COUNT(*) AS total
+    FROM t_guru
+    WHERE status_aktif = 0
+");
+
+if (!$query_guru_tidak_aktif) {
+    die("Query guru tidak aktif gagal: " . mysqli_error($koneksi));
+}
+
+$data_guru_tidak_aktif = mysqli_fetch_assoc($query_guru_tidak_aktif);
+$guru_tidak_aktif = (int)$data_guru_tidak_aktif['total'];
+
+// Fungsi mengamankan output
 function e($nilai) {
     return htmlspecialchars(
         (string)($nilai ?? ''),
@@ -23,22 +70,27 @@ function e($nilai) {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Guru - Pelanggaran Siswa</title>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Kelola Guru - SI PELANG</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- FontAwesome Icons -->
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- DataTables CSS Bootstrap 5 -->
+    <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -47,7 +99,11 @@ function e($nilai) {
             color: #334155;
         }
 
-        /* Styling Sidebar */
+        .container-fluid > .row {
+            align-items: stretch;
+        }
+
+        /* Sidebar */
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -57,45 +113,76 @@ function e($nilai) {
             color: #94a3b8;
             padding: 12px 18px;
             border-radius: 8px;
-            margin-bottom: 4px;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            margin-bottom: 5px;
+            transition: 0.2s;
         }
 
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            color: #ffffff;
             background-color: #2563eb;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            color: #ffffff;
         }
 
         .sidebar .nav-link.text-danger:hover {
-            background-color: #ef4444;
-            color: #fff !important;
+            background-color: #dc2626;
+            color: #ffffff !important;
         }
 
-        /* Badge R dalam Lingkaran */
-        .circle-r {
-            display: inline-flex;
+        /* Judul halaman */
+        .page-title {
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        /* Card Statistik */
+        .stat-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+            height: 100%;
+            transition: 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            width: 24px;
-            height: 24px;
-            border: 2px solid currentColor;
-            border-radius: 50%;
-            font-size: 11px;
-            font-weight: 700;
+            border-radius: 13px;
+            font-size: 22px;
+            flex-shrink: 0;
         }
 
-        /* Card Modern */
+        .stat-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 3px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Card Tabel */
         .card-custom {
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
         }
 
-        /* Custom Header Tabel */
+        /* Header Tabel */
         .table-custom-header th {
             background-color: #eff6ff !important;
             color: #1e40af !important;
@@ -105,9 +192,16 @@ function e($nilai) {
             letter-spacing: 0.05em;
             border-bottom: 2px solid #dbeafe !important;
             padding: 14px 12px;
+            white-space: nowrap;
         }
 
-        /* Tombol Aksi Custom */
+        #tabelGuru td {
+            padding: 12px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        /* Tombol Edit */
         .btn-action-edit {
             background-color: #fef3c7;
             color: #d97706;
@@ -123,6 +217,7 @@ function e($nilai) {
             color: #ffffff;
         }
 
+        /* Tombol Hapus */
         .btn-action-delete {
             background-color: #fee2e2;
             color: #dc2626;
@@ -137,64 +232,193 @@ function e($nilai) {
             background-color: #dc2626;
             color: #ffffff;
         }
+
+        /* DataTables */
+        .dataTables_wrapper {
+            font-size: 13px;
+        }
+
+        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            padding: 6px 10px;
+            outline: none;
+        }
+
+        .dataTables_wrapper .dataTables_filter input:focus,
+        .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 6px !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #2563eb !important;
+            color: white !important;
+            border: 1px solid #2563eb !important;
+        }
+
+        @media (max-width: 767px) {
+            .sidebar {
+                min-height: auto;
+            }
+
+            .page-header {
+                align-items: flex-start !important;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stat-card {
+                padding: 18px;
+            }
+        }
     </style>
 </head>
 
 <body>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-        <!-- Sidebar Navigation -->
-        <?php include 'layout/sidebar.php'; ?>
+        <?php
+        $current_page = basename($_SERVER['PHP_SELF']);
+        include 'layout/sidebar.php';
+        ?>
 
-        <!-- Main Content Area -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <main class="col px-md-4 py-4">
 
-            <!-- Header Judul Halaman -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Header Halaman -->
+            <div class="d-flex justify-content-between align-items-center mb-4 page-header">
+
                 <div>
-                    <h2 class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="fa-solid fa-chalkboard-user text-primary"></i>
+                    <h3 class="page-title mb-1">
+                        <i class="fa-solid fa-chalkboard-user text-primary me-2"></i>
                         Kelola Data Guru
-                    </h2>
+                    </h3>
 
-                    <p class="text-muted mb-0">
+                    <p class="text-secondary mb-0">
                         Kelola data tenaga pengajar dan staf sekolah.
                     </p>
                 </div>
 
-                <div class="d-flex gap-2">
-                    <a href="dashboard.php"
-                       class="btn btn-white text-secondary border fw-medium px-3 shadow-sm"
-                       style="border-radius: 10px;">
-                        <i class="fa-solid fa-arrow-left me-1"></i>
-                        Dashboard
-                    </a>
+                <a href="tambah_guru.php"
+                   class="btn btn-primary fw-medium px-4 shadow-sm">
+                    <i class="fa-solid fa-plus me-1"></i>
+                    Tambah Guru
+                </a>
 
-                    <a href="tambah_guru.php"
-                       class="btn btn-primary fw-medium px-4 shadow-sm"
-                       style="border-radius: 10px; background-color: #2563eb;">
-                        <i class="fa-solid fa-plus me-1"></i>
-                        Tambah Guru
-                    </a>
-                </div>
             </div>
 
-            <!-- Card Konten Tabel Data -->
+            <!-- Card Statistik Guru -->
+            <div class="row g-3 mb-4">
+
+                <!-- Guru Aktif -->
+                <div class="col-xl-4 col-md-6">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center justify-content-between">
+
+                            <div>
+                                <div class="stat-label mb-2">
+                                    Guru Aktif
+                                </div>
+
+                                <div class="stat-number">
+                                    <?= $guru_aktif; ?>
+                                </div>
+
+                                <small class="text-success">
+                                    <i class="fa-solid fa-circle-check me-1"></i>
+                                    Guru berstatus aktif
+                                </small>
+                            </div>
+
+                            <div class="stat-icon bg-success-subtle text-success">
+                                <i class="fa-solid fa-user-check"></i>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guru Wali Kelas -->
+                <div class="col-xl-4 col-md-6">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center justify-content-between">
+
+                            <div>
+                                <div class="stat-label mb-2">
+                                    Guru Menjadi Wali Kelas
+                                </div>
+
+                                <div class="stat-number">
+                                    <?= $guru_wali_kelas; ?>
+                                </div>
+
+                                <small class="text-primary">
+                                    <i class="fa-solid fa-user-tie me-1"></i>
+                                    Memiliki penugasan wali kelas aktif
+                                </small>
+                            </div>
+
+                            <div class="stat-icon bg-primary-subtle text-primary">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guru Tidak Aktif -->
+                <div class="col-xl-4 col-md-6">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center justify-content-between">
+
+                            <div>
+                                <div class="stat-label mb-2">
+                                    Guru Tidak Aktif
+                                </div>
+
+                                <div class="stat-number">
+                                    <?= $guru_tidak_aktif; ?>
+                                </div>
+
+                                <small class="text-danger">
+                                    <i class="fa-solid fa-circle-xmark me-1"></i>
+                                    Guru berstatus tidak aktif
+                                </small>
+                            </div>
+
+                            <div class="stat-icon bg-danger-subtle text-danger">
+                                <i class="fa-solid fa-user-xmark"></i>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Card Data Guru -->
             <div class="card card-custom p-4">
 
                 <div class="border-bottom pb-3 mb-4">
                     <h5 class="fw-bold text-dark mb-1">
+                        <i class="fa-solid fa-table text-primary me-2"></i>
                         Daftar Data Guru
                     </h5>
 
-                    <p class="text-muted small mb-0">
+                    <p class="text-secondary small mb-0">
                         Cari, urutkan, dan kelola data guru terdaftar.
                     </p>
                 </div>
 
                 <div class="table-responsive">
+
                     <table id="tabelGuru" class="table table-hover align-middle w-100">
 
                         <thead class="table-custom-header">
@@ -210,35 +434,31 @@ function e($nilai) {
                         </thead>
 
                         <tbody>
+
                             <?php
                             $no = 1;
 
-                            if ($query_guru && mysqli_num_rows($query_guru) > 0) :
+                            if (mysqli_num_rows($query_guru) > 0) :
                                 while ($data = mysqli_fetch_assoc($query_guru)) :
 
                                     $id_val = $data['id'] ?? ($data['id_guru'] ?? 0);
-
                                     $jk = $data['jenis_kelamin'] ?? '';
                                     $status = (string)($data['status_aktif'] ?? '');
                             ?>
 
                             <tr>
-                                <!-- Nomor -->
                                 <td class="text-center text-muted fw-medium">
                                     <?= $no++; ?>
                                 </td>
 
-                                <!-- NIP -->
                                 <td class="fw-medium text-dark">
                                     <?= e($data['nip'] ?? '-'); ?>
                                 </td>
 
-                                <!-- Nama Guru -->
                                 <td class="fw-semibold text-dark">
                                     <?= e($data['nama'] ?? ($data['nama_guru'] ?? '-')); ?>
                                 </td>
 
-                                <!-- Gender -->
                                 <td>
                                     <?php if ($jk == 'Laki-laki') : ?>
 
@@ -256,19 +476,15 @@ function e($nilai) {
 
                                     <?php else : ?>
 
-                                        <span class="badge bg-secondary">
-                                            -
-                                        </span>
+                                        <span class="badge bg-secondary">-</span>
 
                                     <?php endif; ?>
                                 </td>
 
-                                <!-- Email -->
                                 <td class="text-muted">
                                     <?= e($data['email'] ?? '-'); ?>
                                 </td>
 
-                                <!-- Status -->
                                 <td>
                                     <?php if ($status === '1') : ?>
 
@@ -293,7 +509,6 @@ function e($nilai) {
                                     <?php endif; ?>
                                 </td>
 
-                                <!-- Aksi -->
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2">
 
@@ -318,9 +533,11 @@ function e($nilai) {
                                 endwhile;
                             endif;
                             ?>
+
                         </tbody>
 
                     </table>
+
                 </div>
             </div>
 
@@ -328,18 +545,22 @@ function e($nilai) {
     </div>
 </div>
 
-<!-- JQuery & Bootstrap 5 JS -->
+<!-- JavaScript -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- DataTables JS -->
+<!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
     $(document).ready(function() {
+
+        // Mengaktifkan DataTables
         $('#tabelGuru').DataTable({
             pageLength: 10,
+            lengthMenu: [5, 10, 25, 50, 100],
+
             language: {
                 lengthMenu: "Tampilkan _MENU_ data",
                 zeroRecords: "Data guru tidak ditemukan",
@@ -355,6 +576,7 @@ function e($nilai) {
                 }
             }
         });
+
     });
 </script>
 
