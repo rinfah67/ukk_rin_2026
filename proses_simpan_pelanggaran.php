@@ -1,45 +1,42 @@
+
 <?php
-session_start();
+// proses_simpan_pelanggaran.php
 
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Hanya guru yang boleh menambahkan catatan
+// ============================================
+// CEK HAK AKSES
+// ============================================
+
 if (($_SESSION['role'] ?? '') !== 'guru') {
     header("Location: dashboard.php");
     exit;
 }
 
-// Proses harus melalui form POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: kelola_catatan_pelanggaran.php");
-    exit;
-}
+// ============================================
+// MENGAMBIL ID USER LOGIN
+// ============================================
 
-// Mengambil ID akun pengguna
 $user_id = (int) ($_SESSION['id_user'] ?? 0);
 
 if ($user_id <= 0) {
-    $_SESSION['pesan_error'] = "ID akun pengguna tidak valid.";
-    header("Location: kelola_catatan_pelanggaran.php");
-    exit;
+    die("ID pengguna tidak valid.");
 }
 
-// Mencari data guru berdasarkan akun login
-$stmt = mysqli_prepare(
-    $koneksi,
-    "SELECT id, nama
-     FROM t_guru
-     WHERE user_id = ?
-     LIMIT 1"
-);
+// ============================================
+// MENCARI DATA GURU BERDASARKAN AKUN LOGIN
+// ============================================
+
+$stmt = mysqli_prepare($koneksi, "
+    SELECT id, nama
+    FROM t_guru
+    WHERE user_id = ?
+");
 
 if (!$stmt) {
-    $_SESSION['pesan_error'] = "Query data guru gagal: " . mysqli_error($koneksi);
-    header("Location: kelola_catatan_pelanggaran.php");
-    exit;
+    die("Query guru gagal: " . mysqli_error($koneksi));
 }
-
 mysqli_stmt_bind_param($stmt, "i", $user_id);
 mysqli_stmt_execute($stmt);
 
@@ -49,100 +46,78 @@ $guru = mysqli_fetch_assoc($hasil_guru);
 mysqli_stmt_close($stmt);
 
 if (!$guru) {
-    $_SESSION['pesan_error'] =
-        "Data guru tidak ditemukan. Periksa kolom user_id di tabel t_guru.";
-
-    header("Location: kelola_catatan_pelanggaran.php");
-    exit;
+    die("Data guru tidak ditemukan.");
 }
 
 $guru_id = (int) $guru['id'];
 $nama_guru = $guru['nama'];
 
-// Mengambil data dari form
-$penempatan_id = (int) ($_POST['penempatan_id'] ?? 0);
-$pelanggaran_id = (int) ($_POST['pelanggaran_id'] ?? 0);
+// ============================================
+// MENGAMBIL DATA DARI FORM
+// ============================================
+
+$penempatan_id = (int) ($_POST['penempatan_id'] ?? '');
+$pelanggaran_id = (int) ($_POST['pelanggaran_id'] ?? '');
+
 $tanggal = trim($_POST['tanggal'] ?? '');
 $keterangan = trim($_POST['keterangan'] ?? '');
-$tindakan = trim($_POST['tindakan'] ?? '');
 
-// Memeriksa kolom wajib
-if (
-    $penempatan_id <= 0 ||
-    $pelanggaran_id <= 0 ||
-    $tanggal === '' ||
-    $keterangan === '' ||
-    $tindakan === ''
-) {
-    $_SESSION['pesan_error'] = "Semua kolom wajib harus diisi.";
-    header("Location: proses_tambah_catatan.php");
-    exit;
+// Tindakan belum diisi saat catatan dibuat
+$tindakan = null;
+
+// ============================================
+// VALIDASI INPUT
+// ============================================
+
+
+if ($penempatan_id <= 0) {
+    die("ERROR: ID penempatan siswa tidak terkirim.");
 }
 
-// Memvalidasi tanggal
+if ($pelanggaran_id <= 0) {
+    die("ERROR: ID pelanggaran tidak terkirim.");
+}
+
+if ($tanggal === '') {
+    die("ERROR: Tanggal tidak terkirim.");
+}
+
+if ($keterangan === '') {
+    die("ERROR: Keterangan tidak terkirim.");
+}
+
+
+// ============================================
+// VALIDASI FORMAT TANGGAL
+// ============================================
+
 $tanggal_obj = DateTime::createFromFormat('!Y-m-d', $tanggal);
 
-if (!$tanggal_obj || $tanggal_obj->format('Y-m-d') !== $tanggal) {
-    $_SESSION['pesan_error'] = "Format tanggal tidak valid.";
-    header("Location: proses_tambah_catatan.php");
-    exit;
+if (
+    !$tanggal_obj ||
+    $tanggal_obj->format('Y-m-d') !== $tanggal
+) {
+    die("Tanggal tidak valid.");
 }
 
-// Mengambil data penempatan siswa
-$stmt = mysqli_prepare(
-    $koneksi,
-    "SELECT
-        ks.siswa_id,
-        ks.tahun_ajaran_id,
-        ks.kelas_id,
-        s.nama AS nama_siswa,
-        k.nama AS nama_kelas
-     FROM t_kelas_siswa ks
-     INNER JOIN t_siswa s ON s.id = ks.siswa_id
-     INNER JOIN t_kelas k ON k.id = ks.kelas_id
-     WHERE ks.id = ?
-       AND ks.status_aktif = 1
-       AND s.status_aktif = 1
-       AND k.status_aktif = 1
-     LIMIT 1"
-);
+
+// ============================================
+// MENGAMBIL DATA JENIS PELANGGARAN
+// ============================================
+
+$stmt = mysqli_prepare($koneksi, "
+    SELECT
+        id,
+        nama,
+        poin,
+        pelanggaran_kategori_id
+    FROM t_pelanggaran
+    WHERE id = ?
+      AND status_aktif = 1
+");
 
 if (!$stmt) {
-    $_SESSION['pesan_error'] = "Query penempatan gagal: " . mysqli_error($koneksi);
-    header("Location: proses_tambah_catatan.php");
-    exit;
-}
-
-mysqli_stmt_bind_param($stmt, "i", $penempatan_id);
-mysqli_stmt_execute($stmt);
-
-$hasil_siswa = mysqli_stmt_get_result($stmt);
-$s = mysqli_fetch_assoc($hasil_siswa);
-
-mysqli_stmt_close($stmt);
-
-if (!$s) {
-    $_SESSION['pesan_error'] =
-        "Penempatan siswa tidak ditemukan atau tidak aktif.";
-
-    header("Location: proses_tambah_catatan.php");
-    exit;
-}
-
-// Mengambil jenis pelanggaran
-$stmt = mysqli_prepare(
-    $koneksi,
-    "SELECT id, nama, poin, pelanggaran_kategori_id
-     FROM t_pelanggaran
-     WHERE id = ?
-       AND status_aktif = 1
-     LIMIT 1"
-);
-
-if (!$stmt) {
-    $_SESSION['pesan_error'] = "Query jenis pelanggaran gagal: " . mysqli_error($koneksi);
-    header("Location: proses_tambah_catatan.php");
-    exit;
+    die("Query pelanggaran gagal: " . mysqli_error($koneksi));
 }
 
 mysqli_stmt_bind_param($stmt, "i", $pelanggaran_id);
@@ -154,30 +129,34 @@ $p = mysqli_fetch_assoc($hasil_pelanggaran);
 mysqli_stmt_close($stmt);
 
 if (!$p) {
-    $_SESSION['pesan_error'] =
-        "Jenis pelanggaran tidak ditemukan atau tidak aktif.";
-
-    header("Location: proses_tambah_catatan.php");
-    exit;
+    die("Jenis pelanggaran tidak ditemukan atau tidak aktif.");
 }
 
-// Menyiapkan data yang akan disimpan
-$tahun_id = (int) $s['tahun_ajaran_id'];
-$siswa_id = (int) $s['siswa_id'];
-$kelas_id = (int) $s['kelas_id'];
+// ============================================
+// MENYIAPKAN DATA UNTUK DISIMPAN
+// ============================================
 
-$nama_siswa = $s['nama_siswa'];
-$nama_kelas = $s['nama_kelas'];
+// $tahun_id = (int) $s['tahun_ajaran_id'];
+// $siswa_id = (int) $s['siswa_id'];
+// $kelas_id = (int) $s['kelas_id'];
+
+// $nama_siswa = $s['nama_siswa'];
+// $nama_kelas = $s['nama_kelas'];
+
 $nama_pelanggaran = $p['nama'];
-
 $kategori_id = (int) ($p['pelanggaran_kategori_id'] ?? 0);
+
 $poin = (int) $p['poin'];
+
 $status = 'Belum diproses';
 
-// Menyiapkan query INSERT
-$stmt = mysqli_prepare(
-    $koneksi,
-    "INSERT INTO t_pelanggaran_siswa (
+// ============================================
+// MENYIMPAN CATATAN PELANGGARAN
+// ============================================
+
+$sql = "
+    INSERT INTO t_pelanggaran_siswa
+    (
         tahun_ajaran_id,
         siswa_id,
         nama_siswa,
@@ -195,21 +174,27 @@ $stmt = mysqli_prepare(
         status,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
-);
+    )
+    VALUES
+    (
+        ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0),
+        ?, ?, ?, ?, ?, NULL, ?, NOW(), NOW()
+    )
+";
+
+$stmt = mysqli_prepare($koneksi, $sql);
 
 if (!$stmt) {
-    $_SESSION['pesan_error'] =
-        "Query INSERT gagal disiapkan: " . mysqli_error($koneksi);
-
-    header("Location: proses_tambah_catatan.php");
-    exit;
+    die("Query penyimpanan gagal: " . mysqli_error($koneksi));
 }
 
-// Mengikat 15 nilai sesuai urutan kolom
+// ============================================
+// MENGHUBUNGKAN PARAMETER
+// ============================================
+
 mysqli_stmt_bind_param(
     $stmt,
-    "iisisisiisssiss",
+    "iisisisiisssis",
     $tahun_id,
     $siswa_id,
     $nama_siswa,
@@ -223,27 +208,30 @@ mysqli_stmt_bind_param(
     $tanggal,
     $keterangan,
     $poin,
-    $tindakan,
     $status
 );
 
-// Menyimpan catatan
+// ============================================
+// EKSEKUSI PENYIMPANAN
+// ============================================
+
 if (mysqli_stmt_execute($stmt)) {
+
     mysqli_stmt_close($stmt);
 
-    $_SESSION['pesan_sukses'] =
-        "Catatan pelanggaran berhasil disimpan.";
+    header(
+        "Location: kelola_catatan_pelanggaran.php?pesan=" .
+        urlencode("Catatan berhasil ditambahkan.")
+    );
 
-    header("Location: kelola_catatan_pelanggaran.php");
     exit;
+
+} else {
+
+    $pesan_error = mysqli_stmt_error($stmt);
+
+    mysqli_stmt_close($stmt);
+
+    die("Gagal menyimpan catatan: " . $pesan_error);
 }
-
-// Menampilkan alasan kegagalan agar mudah diperbaiki
-$error = mysqli_stmt_error($stmt);
-mysqli_stmt_close($stmt);
-
-$_SESSION['pesan_error'] = "Gagal menyimpan catatan: " . $error;
-
-header("Location: proses_tambah_catatan.php");
-exit;
 ?>

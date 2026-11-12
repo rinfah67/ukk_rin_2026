@@ -198,6 +198,14 @@ if ($role === 'guru' && $id_user > 0) {
                     Kelola Jenis Pelanggaran
                 </a>
             </li>
+            
+            <li class="nav-item">
+                <a href="rekap_poin.php"
+                   class="nav-link <?= $current_page == 'rekap_poin.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-clock-history"></i>
+                    Rekap Poin
+                </a>
+            </li>
 
             <li class="nav-item">
                 <a href="laporan.php"

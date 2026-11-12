@@ -71,7 +71,7 @@ $tindakan = null;
 // ============================================
 
 
-if ($penempatan_id <= 0) {
+if ($penempatan_id <= '') {
     die("ERROR: ID penempatan siswa tidak terkirim.");
 }
 
